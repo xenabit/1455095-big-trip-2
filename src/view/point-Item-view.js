@@ -1,13 +1,14 @@
-import { createElement } from '/src/render.js';
+import AbstractView from "../framework/view/abstract-view";
 
-import { getFormattedEventDay,
+import {
+  getFormattedEventDay,
   getFormattedAttrEventDay,
   getFormattedTimeEvent,
   getFormattedAttrDatatimeEvent,
-  getTimeDuration
-} from '../utils';
+  getTimeDuration,
+} from "../utils";
 
-import { typeIcons } from '/src/const.js';
+import { typeIcons } from "/src/const.js";
 
 function createLayout(pointData, destinationsData, offersData) {
   const {
@@ -17,7 +18,7 @@ function createLayout(pointData, destinationsData, offersData) {
     destination,
     is_favorite: isFavorite,
     offers,
-    type
+    type,
   } = pointData;
 
   const eventDay = getFormattedEventDay(dateFrom);
@@ -42,7 +43,9 @@ function createLayout(pointData, destinationsData, offersData) {
       const currentTypeOffersData = offerData.offers;
 
       selectedOffers = offers.map((id) => {
-        const mathedOffer = currentTypeOffersData.find((element) => element.id === id);
+        const mathedOffer = currentTypeOffersData.find(
+          (element) => element.id === id
+        );
         return mathedOffer;
       });
     }
@@ -53,7 +56,9 @@ function createLayout(pointData, destinationsData, offersData) {
           <div class="event">
             <time class="event__date" datetime="${eventDayAttr}">${eventDay}</time>
             <div class="event__type">
-              <img class="event__type-icon" width="42" height="42" src="${typeIcons[type]}" alt="Event type icon">
+              <img class="event__type-icon" width="42" height="42" src="${
+                typeIcons[type]
+              }" alt="Event type icon">
             </div>
             <h3 class="event__title">${nameOfdestination}</h3>
             <div class="event__schedule">
@@ -69,15 +74,21 @@ function createLayout(pointData, destinationsData, offersData) {
             </p>
             <h4 class="visually-hidden">Offers:</h4>
             <ul class="event__selected-offers">
-            ${selectedOffers.map((item) => `
+            ${selectedOffers
+              .map(
+                (item) => `
               <li class="event__offer">
                 <span class="event__offer-title">${item.title}</span>
                 &plus;&euro;&nbsp;
                 <span class="event__offer-price">${item.price}</span>
               </li>
-            `).join('')}
+            `
+              )
+              .join("")}
             </ul>
-            <button class="event__favorite-btn ${isFavorite ? 'event__favorite-btn--active' : ''} " type="button">
+            <button class="event__favorite-btn ${
+              isFavorite ? "event__favorite-btn--active" : ""
+            } " type="button">
               <span class="visually-hidden">Add to favorite</span>
               <svg class="event__favorite-icon" width="28" height="28" viewBox="0 0 28 28">
                 <path d="M14 21l-8.22899 4.3262 1.57159-9.1631L.685209 9.67376 9.8855 8.33688 14 0l4.1145 8.33688 9.2003 1.33688-6.6574 6.48934 1.5716 9.1631L14 21z"/>
@@ -91,26 +102,23 @@ function createLayout(pointData, destinationsData, offersData) {
   `;
 }
 
-export default class PointItemView {
-  constructor({pointData, destinationsData, offersData}){
-    this.pointData = pointData;
-    this.destinationsData = destinationsData;
-    this.offersData = offersData;
+export default class PointItemView extends AbstractView {
+  #pointData = null;
+  #destinationsData = null;
+  #offersData = null;
+
+  constructor({ pointData, destinationsData, offersData }) {
+    super();
+    this.#pointData = pointData;
+    this.#destinationsData = destinationsData;
+    this.#offersData = offersData;
   }
 
-  getTemplate() {
-    return createLayout(this.pointData, this.destinationsData, this.offersData);
-  }
-
-  getElement() {
-    if(!this.element) {
-      this.element = createElement(this.getTemplate());
-    }
-
-    return this.element;
-  }
-
-  removeElement() {
-    this.element = null;
+  get template() {
+    return createLayout(
+      this.#pointData,
+      this.#destinationsData,
+      this.#offersData
+    );
   }
 }
