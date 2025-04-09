@@ -244,18 +244,36 @@ function createLayout(point, destinationsData, offersData) {
 }
 
 export default class PointEditView extends AbstractView {
-  #point = null;
-  #destinations = null;
-  #offers = null;
+  #pointData = null;
+  #destinationsData = null;
+  #offersData = null;
+  #handleSubmit = null;
 
-  constructor({ pointData = BLANK_POINT, destinationsData, offersData }) {
+  constructor(
+    { pointData = BLANK_POINT, destinationsData, offersData },
+    handleSubmit
+  ) {
     super();
-    this.#point = pointData;
-    this.#destinations = destinationsData;
-    this.#offers = offersData;
+    this.#pointData = pointData;
+    this.#destinationsData = destinationsData;
+    this.#offersData = offersData;
+    this.#handleSubmit = handleSubmit;
+    this.#setEventListeners();
+  }
+
+  #setEventListeners() {
+    const formElement = this.element.querySelector(".event--edit");
+    formElement.addEventListener("submit", this.#handleSubmit);
+
+    const rollupButton = this.element.querySelector(".event__rollup-btn");
+    rollupButton.addEventListener("click", this.#handleSubmit);
   }
 
   get template() {
-    return createLayout(this.#point, this.#destinations, this.#offers);
+    return createLayout(
+      this.#pointData,
+      this.#destinationsData,
+      this.#offersData
+    );
   }
 }
