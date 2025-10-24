@@ -1,7 +1,7 @@
 # Проект «Большое путешествие»
 
-- Студент: [Ксения Абрамова](https://up.htmlacademy.ru/ecmascript-individual/2/user/1455095).
-- Наставник: `Евгений Лепёшкин`.
+* Студент: [Ксения Абрамова](https://up.htmlacademy.ru/ecmascript-individual/2/user/1455095).
+* Наставник: `Роман Марченко`.
 
 ---
 
