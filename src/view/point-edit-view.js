@@ -1,12 +1,12 @@
-import { typeIcons } from "/src/const.js";
-import { getFormattedEditDateTime } from "../utils";
-import AbstractView from "../framework/view/abstract-view";
+import { typeIcons } from '/src/const.js';
+import { getFormattedEditDateTime } from '../utils';
+import AbstractView from '../framework/view/abstract-view';
 
 const BLANK_POINT = {
   id: null,
   base_price: 0,
-  date_from: "2023-01-01T00:00:00.000Z",
-  date_to: "2023-01-01T00:00:00.000Z",
+  date_from: '2023-01-01T00:00:00.000Z',
+  date_to: '2023-01-01T00:00:00.000Z',
   destination: null,
   is_favorite: false,
   offers: null,
@@ -14,14 +14,7 @@ const BLANK_POINT = {
 };
 
 function createLayout(point, destinationsData, offersData) {
-  const {
-    base_price: basePrice,
-    date_from: dateFrom,
-    date_to: dateTo,
-    destination,
-    offers,
-    type,
-  } = point;
+  const { base_price: basePrice, date_from: dateFrom, date_to: dateTo, destination, offers, type } = point;
 
   let nameOfdestination = null;
 
@@ -56,12 +49,7 @@ function createLayout(point, destinationsData, offersData) {
       .map(
         (item) =>
           `<div class="event__offer-selector">
-        <input class="event__offer-checkbox  visually-hidden" id="${
-          item.id
-        }" type="checkbox"  name="${item.title
-            .toLowerCase()
-            .trim()
-            .replace(/\s+/g, "-")}" ${item.checked ? "checked" : ""}>
+        <input class="event__offer-checkbox  visually-hidden" id="${item.id}" type="checkbox"  name="${item.title.toLowerCase().trim().replace(/\s+/g, '-')}" ${item.checked ? 'checked' : ''}>
         <label class="event__offer-label" for="${item.id}">
           <span class="event__offer-title">${item.title}</span>
           &plus;&euro;&nbsp;
@@ -69,7 +57,7 @@ function createLayout(point, destinationsData, offersData) {
         </label>
       </div>`
       )
-      .join("");
+      .join('');
   }
 
   function getDestinationDesc() {
@@ -95,12 +83,7 @@ function createLayout(point, destinationsData, offersData) {
         }
       });
 
-      return destinationPictures
-        .map(
-          (item) =>
-            `<img class="event__photo" src="${item.src}" alt="Event photo">`
-        )
-        .join("");
+      return destinationPictures.map((item) => `<img class="event__photo" src="${item.src}" alt="Event photo">`).join('');
     }
   }
 
@@ -111,9 +94,7 @@ function createLayout(point, destinationsData, offersData) {
           <div class="event__type-wrapper">
             <label class="event__type  event__type-btn" for="event-type-toggle-1">
               <span class="visually-hidden">Choose event type</span>
-              <img class="event__type-icon" width="17" height="17" src="${
-                type ? typeIcons[type] : typeIcons[null]
-              }" alt="Event type icon">
+              <img class="event__type-icon" width="17" height="17" src="${type ? typeIcons[type] : typeIcons[null]}" alt="Event type icon">
             </label>
             <input class="event__type-toggle  visually-hidden" id="event-type-toggle-1" type="checkbox">
 
@@ -171,29 +152,23 @@ function createLayout(point, destinationsData, offersData) {
 
           <div class="event__field-group  event__field-group--destination">
             <label class="event__label  event__type-output" for="event-destination-1">
-              ${point.type ? point.type : ""}
+              ${point.type ? point.type : ''}
             </label>
             <input class="event__input  event__input--destination" id="event-destination-1" type="text" name="event-destination" value="${
-              destination ? nameOfdestination : ""
+              destination ? nameOfdestination : ''
             }" list="destination-list-1">
             <datalist id="destination-list-1">
-              ${destinationsData.map(
-                (item) => `<option value="${item.name}"></option>`
-              )}
+              ${destinationsData.map((item) => `<option value="${item.name}"></option>`)}
 
             </datalist>
           </div>
 
           <div class="event__field-group  event__field-group--time">
             <label class="visually-hidden" for="event-start-time-1">From</label>
-            <input class="event__input  event__input--time" id="event-start-time-1" type="text" name="event-start-time" value="${getFormattedEditDateTime(
-              dateFrom
-            )}">
+            <input class="event__input  event__input--time" id="event-start-time-1" type="text" name="event-start-time" value="${getFormattedEditDateTime(dateFrom)}">
             &mdash;
             <label class="visually-hidden" for="event-end-time-1">To</label>
-            <input class="event__input  event__input--time" id="event-end-time-1" type="text" name="event-end-time" value="${getFormattedEditDateTime(
-              dateTo
-            )}">
+            <input class="event__input  event__input--time" id="event-end-time-1" type="text" name="event-end-time" value="${getFormattedEditDateTime(dateTo)}">
           </div>
 
           <div class="event__field-group  event__field-group--price">
@@ -201,9 +176,7 @@ function createLayout(point, destinationsData, offersData) {
               <span class="visually-hidden">Price</span>
               &euro;
             </label>
-            <input class="event__input  event__input--price" id="event-price-1" type="text" name="event-price" value="${
-              basePrice ? basePrice : 0
-            }">
+            <input class="event__input  event__input--price" id="event-price-1" type="text" name="event-price" value="${basePrice ? basePrice : 0}">
           </div>
 
           <button class="event__save-btn  btn  btn--blue" type="submit">Save</button>
@@ -217,15 +190,13 @@ function createLayout(point, destinationsData, offersData) {
             <h3 class="event__section-title  event__section-title--offers">Offers</h3>
 
             <div class="event__available-offers">
-              ${offers ? getOfferTemplate() : ""}
+              ${offers ? getOfferTemplate() : ''}
             </div>
           </section>
 
           <section class="event__section  event__section--destination">
             <h3 class="event__section-title  event__section-title--destination">Destination</h3>
-            <p class="event__destination-description"> ${
-              destination ? getDestinationDesc() : ""
-            }</p>
+            <p class="event__destination-description"> ${destination ? getDestinationDesc() : ''}</p>
           </section>
           <section class="event__section  event__section--destination">
             <h3 class="event__section-title  event__section-title--destination">Destination</h3>
@@ -233,7 +204,7 @@ function createLayout(point, destinationsData, offersData) {
 
             <div class="event__photos-container">
               <div class="event__photos-tape">
-                ${destination ? getDestinationPictures() : ""}
+                ${destination ? getDestinationPictures() : ''}
               </div>
             </div>
           </section>
@@ -249,10 +220,7 @@ export default class PointEditView extends AbstractView {
   #offersData = null;
   #handleSubmit = null;
 
-  constructor(
-    { pointData = BLANK_POINT, destinationsData, offersData },
-    handleSubmit
-  ) {
+  constructor({ pointData = BLANK_POINT, destinationsData, offersData }, handleSubmit) {
     super();
     this.#pointData = pointData;
     this.#destinationsData = destinationsData;
@@ -262,18 +230,14 @@ export default class PointEditView extends AbstractView {
   }
 
   #setEventListeners() {
-    const formElement = this.element.querySelector(".event--edit");
-    formElement.addEventListener("submit", this.#handleSubmit);
+    const formElement = this.element.querySelector('.event--edit');
+    formElement.addEventListener('submit', this.#handleSubmit);
 
-    const rollupButton = this.element.querySelector(".event__rollup-btn");
-    rollupButton.addEventListener("click", this.#handleSubmit);
+    const rollupButton = this.element.querySelector('.event__rollup-btn');
+    rollupButton.addEventListener('click', this.#handleSubmit);
   }
 
   get template() {
-    return createLayout(
-      this.#pointData,
-      this.#destinationsData,
-      this.#offersData
-    );
+    return createLayout(this.#pointData, this.#destinationsData, this.#offersData);
   }
 }

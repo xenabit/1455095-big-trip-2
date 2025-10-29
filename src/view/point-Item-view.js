@@ -1,25 +1,11 @@
-import AbstractView from "../framework/view/abstract-view";
+import AbstractView from '../framework/view/abstract-view';
 
-import {
-  getFormattedEventDay,
-  getFormattedAttrEventDay,
-  getFormattedTimeEvent,
-  getFormattedAttrDatatimeEvent,
-  getTimeDuration,
-} from "../utils";
+import { getFormattedEventDay, getFormattedAttrEventDay, getFormattedTimeEvent, getFormattedAttrDatatimeEvent, getTimeDuration } from '../utils';
 
-import { typeIcons } from "/src/const.js";
+import { typeIcons } from '/src/const.js';
 
 function createLayout(pointData, destinationsData, offersData) {
-  const {
-    base_price: basePrice,
-    date_from: dateFrom,
-    date_to: dateTo,
-    destination,
-    is_favorite: isFavorite,
-    offers,
-    type,
-  } = pointData;
+  const { base_price: basePrice, date_from: dateFrom, date_to: dateTo, destination, is_favorite: isFavorite, offers, type } = pointData;
 
   const eventDay = getFormattedEventDay(dateFrom);
   const eventTimeStart = getFormattedTimeEvent(dateFrom);
@@ -32,20 +18,18 @@ function createLayout(pointData, destinationsData, offersData) {
   let nameOfdestination = null;
   let selectedOffers = [];
 
-  destinationsData.forEach((element) => {
-    if (destination === element.id) {
-      nameOfdestination = element.name;
+  destinationsData.forEach((destinationDataElement) => {
+    if (destination === destinationDataElement.id) {
+      nameOfdestination = destinationDataElement.name;
     }
   });
 
-  offersData.forEach((offerData) => {
-    if (offerData.type === type) {
-      const currentTypeOffersData = offerData.offers;
+  offersData.forEach((offerDataElement) => {
+    if (offerDataElement.type === type) {
+      const currentTypeOffersData = offerDataElement.offers;
 
       selectedOffers = offers.map((id) => {
-        const mathedOffer = currentTypeOffersData.find(
-          (element) => element.id === id
-        );
+        const mathedOffer = currentTypeOffersData.find((element) => element.id === id);
         return mathedOffer;
       });
     }
@@ -56,9 +40,7 @@ function createLayout(pointData, destinationsData, offersData) {
           <div class="event">
             <time class="event__date" datetime="${eventDayAttr}">${eventDay}</time>
             <div class="event__type">
-              <img class="event__type-icon" width="42" height="42" src="${
-                typeIcons[type]
-              }" alt="Event type icon">
+              <img class="event__type-icon" width="42" height="42" src="${typeIcons[type]}" alt="Event type icon">
             </div>
             <h3 class="event__title">${nameOfdestination}</h3>
             <div class="event__schedule">
@@ -84,11 +66,9 @@ function createLayout(pointData, destinationsData, offersData) {
               </li>
             `
               )
-              .join("")}
+              .join('')}
             </ul>
-            <button class="event__favorite-btn ${
-              isFavorite ? "event__favorite-btn--active" : ""
-            } " type="button">
+            <button class="event__favorite-btn ${isFavorite ? 'event__favorite-btn--active' : ''} " type="button">
               <span class="visually-hidden">Add to favorite</span>
               <svg class="event__favorite-icon" width="28" height="28" viewBox="0 0 28 28">
                 <path d="M14 21l-8.22899 4.3262 1.57159-9.1631L.685209 9.67376 9.8855 8.33688 14 0l4.1145 8.33688 9.2003 1.33688-6.6574 6.48934 1.5716 9.1631L14 21z"/>
@@ -119,15 +99,11 @@ export default class PointItemView extends AbstractView {
   }
 
   #setEventListeners() {
-    const itemElement = this.element.querySelector(".event__rollup-btn");
-    itemElement.addEventListener("click", this.#handleClick);
+    const itemElement = this.element.querySelector('.event__rollup-btn');
+    if (itemElement.addEventListener('click', this.#handleClick));
   }
 
   get template() {
-    return createLayout(
-      this.#pointData,
-      this.#destinationsData,
-      this.#offersData
-    );
+    return createLayout(this.#pointData, this.#destinationsData, this.#offersData);
   }
 }

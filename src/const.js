@@ -11,5 +11,4 @@ const typeIcons = {
   null: 'img/icons/transport.png',
 };
 
-
 export { typeIcons };

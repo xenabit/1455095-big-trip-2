@@ -54,11 +54,4 @@ function getTimeDuration(start, end) {
   return formattedDuration;
 }
 
-
-export { getFormattedEventDay,
-  getFormattedAttrEventDay,
-  getFormattedTimeEvent,
-  getFormattedAttrDatatimeEvent,
-  getTimeDuration,
-  getFormattedEditDateTime
-};
+export { getFormattedEventDay, getFormattedAttrEventDay, getFormattedTimeEvent, getFormattedAttrDatatimeEvent, getTimeDuration, getFormattedEditDateTime };
