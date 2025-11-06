@@ -1,15 +1,16 @@
-import PointEditView from "/src/view/point-edit-view";
-import FilterView from "/src/view/filter-view";
-import SortView from "/src/view/sort-view";
-import PointsListView from "/src/view/points-list-view";
-import PointItemView from "/src/view/point-item-view";
-import { render, replace } from "/src/framework/render.js";
+import PointEditView from '/src/view/point-edit-view';
+import FilterView from '/src/view/filter-view';
+import SortView from '/src/view/sort-view';
+import PointsListView from '/src/view/points-list-view';
+import PointItemView from '/src/view/point-item-view';
+import { render, replace } from '/src/framework/render.js';
+import { isEscEvent } from '../utils';
 
-const siteBodySection = document.querySelector(".page-body");
+const siteBodySection = document.querySelector('.page-body');
 const siteFilterSection = siteBodySection.querySelector(
-  ".trip-controls__filters"
+  '.trip-controls__filters'
 );
-const siteContentSection = siteBodySection.querySelector(".trip-events");
+const siteContentSection = siteBodySection.querySelector('.trip-events');
 
 export default class Presenter {
   #pointListComponent = new PointsListView();
@@ -38,8 +39,8 @@ export default class Presenter {
     render(this.#pointListComponent, this.pointsContainer);
 
     for (let i = 0; i < this.points.length; i++) {
-      let itemComponent;
-      let pointEditView;
+      let itemComponent = null;
+      let pointEditView = null;
 
       const handlePointClick = () => {
         replace(pointEditView, itemComponent);
@@ -77,11 +78,11 @@ export default class Presenter {
       render(itemComponent, this.#pointListComponent.element);
     }
 
-    document.addEventListener("keydown", this.#handleEscKeyDown);
+    document.addEventListener('keydown', this.#handleEscKeyDown);
   }
 
   #handleEscKeyDown = (evt) => {
-    if (evt.key === "Escape" || evt.key === "Esc") {
+    if (isEscEvent(evt)) {
       if (this.#activeEditComponent) {
         const { itemComponent, pointEditView } = this.#activeEditComponent;
         replace(itemComponent, pointEditView);
