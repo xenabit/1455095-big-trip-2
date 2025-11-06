@@ -1,4 +1,4 @@
-import AbstractView from "../framework/view/abstract-view";
+import AbstractView from '../framework/view/abstract-view';
 
 function createLayout() {
   return `<form class="trip-events__trip-sort  trip-sort" action="#" method="get">

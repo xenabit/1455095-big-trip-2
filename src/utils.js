@@ -9,6 +9,11 @@ const EVENT_TIME_FORMAT = 'HH:mm';
 const EVENT_TIME_DATATIME_ATTR_FORMAT = 'YYYY-MM-DDTHH:mm';
 const EDIT_DATE_TIME_FORMAT = 'DD/MM/YY HH:mm';
 
+const Keys = {
+  ESC: 'Esc',
+  ESCAPE: 'Escape',
+};
+
 function getFormattedEventDay(dueDate) {
   return dueDate ? dayjs(dueDate).format(EVENT_DAY_FORMAT) : '';
 }
@@ -54,11 +59,15 @@ function getTimeDuration(start, end) {
   return formattedDuration;
 }
 
+const isEscEvent = (evt) =>
+  evt.key === Keys.ESC || evt.key === Keys.ESCAPE;
 
-export { getFormattedEventDay,
+export {
+  getFormattedEventDay,
   getFormattedAttrEventDay,
   getFormattedTimeEvent,
   getFormattedAttrDatatimeEvent,
   getTimeDuration,
-  getFormattedEditDateTime
+  getFormattedEditDateTime,
+  isEscEvent
 };
