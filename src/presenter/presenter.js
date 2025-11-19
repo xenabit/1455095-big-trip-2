@@ -2,7 +2,7 @@ import PointsListView from '/src/view/points-list-view';
 import FilterView from '/src/view/filter-view';
 import SortView from '/src/view/sort-view';
 import PointPresenter from './point-presenter.js';
-
+// import { updateItem } from '../utils';
 
 import { render } from '/src/framework/render.js';
 
@@ -37,6 +37,14 @@ export default class Presenter {
     this.#renderAllPoints();
   }
 
+  #handlePointChange = (updatedPoint) => {
+    const pointPresenter = this.#pointPresenters.get(updatedPoint.id);
+
+    if (pointPresenter) {
+      pointPresenter.init(updatedPoint);
+    }
+
+  };
 
   #renderAllPoints(){
     const points = this.#pointsModel.getPoints();
@@ -44,15 +52,15 @@ export default class Presenter {
     points.forEach((point) => {
       const pointPresenter = new PointPresenter({
         container: this.#pointsListComponent.element,
-        point: point,
         destinationsModel: this.#destinationsModel,
         offersModel: this.#offersModel,
+        onDataChange: this.#handlePointChange
       });
 
-      pointPresenter.init();
+      pointPresenter.init(point);
       this.#pointPresenters.set(point.id, pointPresenter);
     });
-
-
   }
+
+
 }

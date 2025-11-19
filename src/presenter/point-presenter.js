@@ -13,23 +13,36 @@ export default class PointPresenter {
 
   #pointComponent = null;
   #pointEditComponent = null;
-
+  #handleDataChange = null;
 
   constructor({
     container,
     destinationsModel,
-    offersModel,
-    point
+    offersModel, onDataChange
   }) {
     this.#container = container;
     this.#destinationsModel = destinationsModel;
     this.#offersModel = offersModel;
-    this.#point = point;
+    this.#handleDataChange = onDataChange;
   }
 
-  init(){
-    this.#pointComponent = this.#createPointComponent();
-    this.#pointEditComponent = this.#createEditComponent();
+
+  init(point){
+    this.#point = point;
+
+    this.#pointComponent = new PointItemView({
+      pointData: this.#point,
+      destinationsData: this.#destinationsModel.getDestination(),
+      offersData: this.#offersModel.getOffers(),
+    }, this.#handleRollupClick, this.#handleFavoriteClick);
+
+    this.#pointEditComponent = new PointEditView(
+      {
+        pointData: this.#point,
+        destinationsData: this.#destinationsModel.getDestination(),
+        offersData: this.#offersModel.getOffers(),
+      }, this.#handleFormSubmit);
+
     render(this.#pointComponent, this.#container);
   }
 
@@ -43,39 +56,24 @@ export default class PointPresenter {
 
   #handleRollupClick = () => {
     this.#replaceFormToPoint();
-    document.addEventListener('keydown', this.#escKeyDownHandler);
+    document.addEventListener('keydown', this.#handleEscKeyDown);
   };
 
   #handleFormSubmit = () => {
     this.#replacePointToForm();
-    document.removeEventListener('keydown', this.#escKeyDownHandler);
+    document.removeEventListener('keydown', this.#handleEscKeyDown);
   };
 
-  #escKeyDownHandler = (evt) => {
+  #handleFavoriteClick = () => {
+    this.#handleDataChange({...this.#point, isFavorite: !this.#point.isFavorite});
+  };
+
+  #handleEscKeyDown = (evt) => {
     if (isEscEvent(evt)) {
       evt.preventDefault();
       this.#handleFormSubmit();
     }
   };
-
-  #createPointComponent() {
-
-    return new PointItemView({
-      pointData: this.#point,
-      destinationsData: this.#destinationsModel.getDestination(),
-      offersData: this.#offersModel.getOffers(),
-    }, this.#handleRollupClick);
-  }
-
-  #createEditComponent() {
-
-    return new PointEditView(
-      {
-        pointData: this.#point,
-        destinationsData: this.#destinationsModel.getDestination(),
-        offersData: this.#offersModel.getOffers(),
-      }, this.#handleFormSubmit);
-  }
 
 
   destroy() {
