@@ -46,6 +46,10 @@ export default class Presenter {
 
   };
 
+  #handleModeChange = () => {
+    this.#pointPresenters.forEach((presenter) => presenter.resetView());
+  };
+
   #renderAllPoints(){
     const points = this.#pointsModel.getPoints();
 
@@ -54,7 +58,8 @@ export default class Presenter {
         container: this.#pointsListComponent.element,
         destinationsModel: this.#destinationsModel,
         offersModel: this.#offersModel,
-        onDataChange: this.#handlePointChange
+        handlePointChange: this.#handlePointChange,
+        handleModeChange: this.#handleModeChange
       });
 
       pointPresenter.init(point);
