@@ -1,6 +1,6 @@
 import { typeIcons } from '/src/const.js';
-import { getFormattedEditDateTime } from '../utils';
-import AbstractView from '../framework/view/abstract-view';
+import { getFormattedEditDateTime } from '../utils/utils.js';
+import AbstractView from '../framework/view/abstract-view.js';
 
 const BLANK_POINT = {
   id: null,

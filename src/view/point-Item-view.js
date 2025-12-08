@@ -6,7 +6,7 @@ import {
   getFormattedTimeEvent,
   getFormattedAttrDatatimeEvent,
   getTimeDuration,
-} from '../utils';
+} from '../utils/utils.js';
 
 import { typeIcons } from '/src/const.js';
 

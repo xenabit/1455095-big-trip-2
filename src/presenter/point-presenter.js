@@ -1,13 +1,9 @@
-import PointEditView from '/src/view/point-edit-view';
-import PointItemView from '/src/view/point-item-view';
+import PointEditView from '/src/view/point-edit-view.js';
+import PointItemView from '/src/view/point-item-view.js';
+import { Mode } from '/src/const.js';
 
 import { render, replace, remove } from '/src/framework/render.js';
-import { isEscEvent } from '../utils';
-
-const Mode = {
-  DEFAULT: 'DEFAULT',
-  EDITING: 'EDITING',
-};
+import { isEscEvent } from '../utils/utils';
 
 export default class PointPresenter {
   #container = null;

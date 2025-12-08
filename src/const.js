@@ -11,5 +11,16 @@ const typeIcons = {
   null: 'img/icons/transport.png',
 };
 
+const Mode = {
+  DEFAULT: 'DEFAULT',
+  EDITING: 'EDITING',
+};
 
-export { typeIcons };
+const SortType = {
+  DAY: 'day',
+  TIME: 'time',
+  PRICE: 'price',
+};
+
+
+export { typeIcons, Mode, SortType };
