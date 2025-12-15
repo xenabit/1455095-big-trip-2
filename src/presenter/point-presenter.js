@@ -1,7 +1,6 @@
 import PointEditView from '/src/view/point-edit-view.js';
 import PointItemView from '/src/view/point-item-view.js';
 import { Mode } from '/src/const.js';
-
 import { render, replace, remove } from '/src/framework/render.js';
 import { isEscEvent } from '../utils/utils';
 
@@ -33,7 +32,7 @@ export default class PointPresenter {
     this.#handleModeChange = handleModeChange;
   }
 
-  init(point){
+  init(point) {
     this.#point = point;
 
     const prevPointComponent = this.#pointComponent;
@@ -55,7 +54,8 @@ export default class PointPresenter {
         destinationsData: this.#destinationsModel.getDestination(),
         offersData: this.#offersModel.getOffers(),
       },
-      this.#handleFormSubmit
+      this.#handleFormSubmit,
+      this.#handleRollupClick
     );
 
     if (!prevPointComponent || !prevPointEditComponent) {
@@ -68,6 +68,7 @@ export default class PointPresenter {
     }
 
     if (this.#mode === Mode.EDITING) {
+      this.#pointEditComponent.reset(this.#point);
       replace(this.#pointEditComponent, prevPointComponent);
     }
 
@@ -77,7 +78,7 @@ export default class PointPresenter {
 
   resetView = () => {
     if (this.#mode !== Mode.DEFAULT) {
-      this.#closeForm ();
+      this.#closeForm();
     }
   };
 
@@ -95,29 +96,35 @@ export default class PointPresenter {
 
   #closeForm = () => {
     replace(this.#pointComponent, this.#pointEditComponent);
-
     this.#mode = Mode.DEFAULT;
     document.removeEventListener('keydown', this.#handleEscKeyDown);
   };
 
-
   #handleRollupClick = () => {
-    this.#openForm();
+    if (this.#mode === Mode.DEFAULT) {
+      this.#openForm();
+    } else {
+      this.#closeForm();
+    }
   };
 
-  #handleFormSubmit = () => {
-    this.#closeForm ();
-    document.removeEventListener('keydown', this.#handleEscKeyDown);
+  #handleFormSubmit = (updatedPoint) => {
+    this.#handlePointChange(updatedPoint);
+    this.#closeForm();
   };
+
 
   #handleFavoriteClick = () => {
-    this.#handlePointChange({...this.#point, isFavorite: !this.#point.isFavorite});
+    this.#handlePointChange({
+      ...this.#point,
+      isFavorite: !this.#point.isFavorite
+    });
   };
 
   #handleEscKeyDown = (evt) => {
     if (isEscEvent(evt)) {
       evt.preventDefault();
-      this.#closeForm ();
+      this.#closeForm();
     }
   };
 }
