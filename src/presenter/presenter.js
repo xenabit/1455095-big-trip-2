@@ -4,7 +4,7 @@ import SortView from '/src/view/sort-view';
 import PointPresenter from './point-presenter.js';
 
 import { render } from '/src/framework/render.js';
-import { SortType } from '/src/const.js';
+import { SortType, UpdateType } from '/src/const.js';
 
 const body = document.querySelector('.page-body');
 const eventsSection = body.querySelector('.trip-events');
@@ -31,6 +31,8 @@ export default class Presenter {
     this.#pointsModel = pointsModel;
     this.#destinationsModel = destinationsModel;
     this.#offersModel = offersModel;
+
+    this.#pointsModel.addObserver(this.#handleModelEvent);
   }
 
   init() {
@@ -45,6 +47,44 @@ export default class Presenter {
 
     this.#renderAllPoints();
   }
+
+  #handleModelEvent = (updateType, payload) => {
+
+    switch (updateType) {
+      case UpdateType.PATCH:
+        // Обновляем только конкретную точку
+        this.#updatePoint(payload);
+        break;
+      case UpdateType.MINOR:
+        // Перерисовываем все точки (после редактирования)
+        this.#clearPoints();
+        this.#renderAllPoints();
+        break;
+      case UpdateType.MAJOR:
+        // Полная перерисовка с учетом сортировки/фильтрации
+        this.#clearPoints();
+        this.#renderAllPoints();
+        break;
+      case UpdateType.INIT:
+        // Инициализация
+        this.#renderAllPoints();
+        break;
+    }
+  };
+
+  #handlePointChange = (updatedPoint) => {
+    // Используем модель для обновления данных
+    this.#pointsModel.updatePoint(UpdateType.MINOR, updatedPoint);
+  };
+
+  #updatePoint = (updatedPoint) => {
+    // Обновляем конкретный презентер точки
+    const pointPresenter = this.#pointPresenters.get(updatedPoint.id);
+
+    if (pointPresenter) {
+      pointPresenter.init(updatedPoint);
+    }
+  };
 
 
   #needToRerender(sortedPoints) {
@@ -78,13 +118,6 @@ export default class Presenter {
     }
   };
 
-  #handlePointChange = (updatedPoint) => {
-    const pointPresenter = this.#pointPresenters.get(updatedPoint.id);
-
-    if (pointPresenter) {
-      pointPresenter.init(updatedPoint);
-    }
-  };
 
   #handleModeChange = () => {
     this.#pointPresenters.forEach((presenter) => presenter.resetView());

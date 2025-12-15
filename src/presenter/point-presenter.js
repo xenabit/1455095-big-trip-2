@@ -41,7 +41,7 @@ export default class PointPresenter {
     this.#pointComponent = new PointItemView(
       {
         pointData: this.#point,
-        destinationsData: this.#destinationsModel.getDestination(),
+        destinationsData: this.#destinationsModel.getDestinations(),
         offersData: this.#offersModel.getOffers(),
       },
       this.#handleRollupClick,
@@ -51,7 +51,7 @@ export default class PointPresenter {
     this.#pointEditComponent = new PointEditView(
       {
         pointData: this.#point,
-        destinationsData: this.#destinationsModel.getDestination(),
+        destinationsData: this.#destinationsModel.getDestinations(),
         offersData: this.#offersModel.getOffers(),
       },
       this.#handleFormSubmit,
@@ -110,8 +110,9 @@ export default class PointPresenter {
   };
 
   #handleFormSubmit = (updatedPoint) => {
+    // Теперь используем колбэк, который передаст данные в модель
     this.#handlePointChange(updatedPoint);
-    this.#closeForm();
+    // Форма закрывается после успешного обновления в модели
   };
 
   #handleDeleteClick = () => {
@@ -131,4 +132,14 @@ export default class PointPresenter {
       this.#closeForm();
     }
   };
+
+  // Метод для обновления точки в ответ на изменение модели
+  updatePoint(updatedPoint) {
+    if (this.#point.id !== updatedPoint.id) {
+      return;
+    }
+
+    this.#point = updatedPoint;
+    this.init(updatedPoint);
+  }
 }

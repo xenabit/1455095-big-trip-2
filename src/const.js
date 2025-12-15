@@ -22,5 +22,11 @@ const SortType = {
   PRICE: 'price',
 };
 
+const UpdateType = {
+  PATCH: 'PATCH', // Изменение части объекта (например, isFavorite)
+  MINOR: 'MINOR', // Изменение одной точки (редактирование)
+  MAJOR: 'MAJOR', // Изменения, требующие перерисовки списка (сортировка, фильтрация)
+  INIT: 'INIT' // Инициализация приложения
+};
 
-export { typeIcons, Mode, SortType };
+export { typeIcons, Mode, SortType, UpdateType };
