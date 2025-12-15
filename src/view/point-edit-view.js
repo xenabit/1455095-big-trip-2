@@ -519,12 +519,13 @@ export default class PointEditView extends AbstractStatefulView {
 
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
+    evt.stopPropagation();
 
     if (this.#isDestroyed) {
       return;
     }
 
-    requestAnimationFrame(() => {
+    Promise.resolve().then(() => {
       if (!this.#validateForm()) {
         this.shake(() => {
           this.resetButtons();
@@ -541,6 +542,8 @@ export default class PointEditView extends AbstractStatefulView {
       if (this.#handleSubmit) {
         this.#handleSubmit(formData);
       }
+    }).catch((error) => {
+      console.error('Form submit error:', error);
     });
   };
 
@@ -619,6 +622,7 @@ export default class PointEditView extends AbstractStatefulView {
     };
   }
 
+  // /src/view/point-edit-view.js (упрощаем валидацию)
   #validateForm() {
     if (this.#isDestroyed || !this.element) {
       return false;
@@ -627,30 +631,87 @@ export default class PointEditView extends AbstractStatefulView {
     const destinationInput = this.element.querySelector('.event__input--destination');
     const priceInput = this.element.querySelector('.event__input--price');
 
+    // БЫСТРАЯ ПРОВЕРКА ПУСТЫХ ПОЛЕЙ
     if (!destinationInput || !destinationInput.value.trim()) {
-      alert('Выберите пункт назначения из списка');
+      this.#showQuickError('Выберите пункт назначения из списка');
       destinationInput?.focus();
       return false;
     }
 
     const destinationName = destinationInput.value.trim();
-    const destinationExists = this.#destinationsData.some((d) =>
-      d.name.toLowerCase() === destinationName.toLowerCase()
-    );
+
+    // БЫСТРЫЙ ПОИСК (кешируем lowercase имена)
+    const destinationExists = this.#destinationsData.some((d) => {
+      // Используем кеширование для быстрого поиска
+      if (!d._lowerName) {
+        d._lowerName = d.name.toLowerCase();
+      }
+      return d._lowerName === destinationName.toLowerCase();
+    });
 
     if (!destinationExists) {
-      alert(`"${destinationName}" не найден. Выберите пункт назначения из списка.`);
+      this.#showQuickError(`"${destinationName}" не найден. Выберите из списка.`);
       destinationInput.focus();
       return false;
     }
 
-    if (!priceInput || !priceInput.value || parseInt(priceInput.value) < 0) {
-      alert('Введите корректную цену (больше или равно 0)');
+    // БЫСТРАЯ ПРОВЕРКА ЦЕНЫ
+    if (!priceInput || !priceInput.value) {
+      this.#showQuickError('Введите цену');
       priceInput?.focus();
       return false;
     }
 
+    const price = parseInt(priceInput.value, 10);
+    if (isNaN(price) || price < 0) {
+      this.#showQuickError('Введите корректную цену (больше или равно 0)');
+      priceInput.focus();
+      return false;
+    }
+
     return true;
+  }
+
+  // БЫСТРЫЙ ПОКАЗ ОШИБОК (без alert)
+  #showQuickError(message) {
+    // Создаем временный элемент ошибки
+    const errorDiv = document.createElement('div');
+    errorDiv.textContent = message;
+    errorDiv.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #ff6b6b;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 4px;
+      z-index: 10000;
+      animation: fadeInOut 3s ease;
+    `;
+
+    // Добавляем стили для анимации
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateY(-10px); }
+        10% { opacity: 1; transform: translateY(0); }
+        90% { opacity: 1; transform: translateY(0); }
+        100% { opacity: 0; transform: translateY(-10px); }
+      }
+    `;
+
+    document.head.appendChild(style);
+    document.body.appendChild(errorDiv);
+
+    // Удаляем через 3 секунды
+    setTimeout(() => {
+      if (errorDiv.parentElement) {
+        errorDiv.remove();
+      }
+      if (style.parentElement) {
+        style.remove();
+      }
+    }, 3000);
   }
 
   #formResetHandler = (evt) => {
@@ -732,7 +793,7 @@ export default class PointEditView extends AbstractStatefulView {
 
     return `
       <li class="trip-events__item">
-        <form class="event event--edit" action="#" method="post">
+        <form class="event event--edit" action="#" method="post onsubmit="return false;">
           <header class="event__header">
             <div class="event__type-wrapper">
               <label class="event__type event__type-btn" for="event-type-toggle-1">
