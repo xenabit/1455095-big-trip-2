@@ -1,4 +1,3 @@
-// /src/view/point-item-view.js (исправляем шаблон)
 import AbstractView from '../framework/view/abstract-view';
 import {
   getFormattedEventDay,
@@ -116,113 +115,12 @@ export default class PointItemView extends AbstractView {
     this.#handleRollupClick = handleRollupClick;
     this.#handleFavoriteClick = handleFavoriteClick;
 
-    this.#setEventListeners();
+    this.element.querySelector('.event__rollup-btn')
+      ?.addEventListener('click', this.#rollupButtonClickHandler);
+
+    this.element.querySelector('.event__favorite-btn')
+      ?.addEventListener('click', this.#favoriteButtonClickHandler);
   }
-
-
-
-  #setEventListeners() {
-    if (this.#isDestroyed || !this.element) return;
-
-    const formElement = this.element.querySelector('.event--edit');
-    if (formElement) {
-      // Убедимся, что предотвращаем отправку формы
-      formElement.addEventListener('submit', this.#formSubmitHandler);
-    }
-
-    const typeInputs = this.element.querySelectorAll('.event__type-input');
-    typeInputs.forEach((input) => {
-      input.addEventListener('change', this.#typeChangeHandler);
-    });
-
-    const destinationInput = this.element.querySelector('.event__input--destination');
-    if (destinationInput) {
-      destinationInput.addEventListener('input', this.#destinationInputHandler);
-      destinationInput.addEventListener('change', this.#destinationChangeHandler);
-      destinationInput.addEventListener('keydown', this.#destinationKeydownHandler);
-      destinationInput.addEventListener('blur', this.#destinationBlurHandler);
-    }
-
-    const offersCheckboxes = this.element.querySelectorAll('.event__offer-checkbox');
-    offersCheckboxes.forEach((checkbox) => {
-      checkbox.addEventListener('change', this.#offerChangeHandler);
-    });
-
-    const priceInput = this.element.querySelector('.event__input--price');
-    if (priceInput) {
-      // Для type="text" с pattern="[0-9]*" валидация будет проще
-      priceInput.addEventListener('input', this.#priceInputHandler);
-      priceInput.addEventListener('change', this.#priceChangeHandler);
-      priceInput.addEventListener('keydown', this.#priceKeydownHandler);
-      priceInput.addEventListener('blur', this.#priceBlurHandler);
-    }
-
-    const deleteButton = this.element.querySelector('.event__reset-btn');
-    if (deleteButton) {
-      // Обработчик для кнопки Delete
-      deleteButton.addEventListener('click', this.#deleteButtonClickHandler);
-    }
-
-    const rollupButton = this.element.querySelector('.event__rollup-btn');
-    if (rollupButton) {
-      rollupButton.addEventListener('click', this.#rollupButtonClickHandler);
-    }
-
-    this.#initDatePickers();
-  }
-
-  // ДОБАВЛЯЕМ НОВЫЙ ОБРАБОТЧИК ДЛЯ КНОПКИ DELETE
-  #deleteButtonClickHandler = (evt) => {
-    evt.preventDefault();
-    if (this.#handleDelete) {
-      this.#handleDelete(this.#stateToPoint());
-    }
-  };
-
-  // ИСПРАВЛЯЕМ ОБРАБОТЧИК ДЛЯ ПОЛЯ ЦЕНЫ
-  #priceInputHandler = (evt) => {
-    if (this.#isDestroyed) return;
-
-    const input = evt.target;
-    let value = input.value;
-
-    // Удаляем все нецифровые символы
-    const cleanedValue = value.replace(/[^\d]/g, '');
-
-    // Ограничиваем максимальную длину (например, 6 цифр)
-    const maxLength = 6;
-    if (cleanedValue.length > maxLength) {
-      input.value = cleanedValue.slice(0, maxLength);
-      return;
-    }
-
-    // Если значение изменилось, обновляем поле
-    if (value !== cleanedValue) {
-      input.value = cleanedValue;
-    }
-
-    // Обновляем состояние без перерисовки
-    const numericValue = cleanedValue === '' ? 0 : parseInt(cleanedValue, 10) || 0;
-    this.#updateStateWithoutRerender({ basePrice: numericValue });
-  };
-
-  #priceKeydownHandler = (evt) => {
-    if (this.#isDestroyed) return;
-
-    const allowedKeys = [
-      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-      'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight',
-      'ArrowUp', 'ArrowDown', 'Tab', 'Home', 'End'
-    ];
-
-    if (evt.ctrlKey && ['a', 'c', 'v', 'x'].includes(evt.key.toLowerCase())) {
-      return;
-    }
-
-    if (!allowedKeys.includes(evt.key)) {
-      evt.preventDefault();
-    }
-  };
 
   get template() {
     return createLayout(
@@ -231,4 +129,14 @@ export default class PointItemView extends AbstractView {
       this.#offersData
     );
   }
+
+  #rollupButtonClickHandler = (evt) => {
+    evt.preventDefault();
+    this.#handleRollupClick();
+  };
+
+  #favoriteButtonClickHandler = (evt) => {
+    evt.preventDefault();
+    this.#handleFavoriteClick();
+  };
 }
