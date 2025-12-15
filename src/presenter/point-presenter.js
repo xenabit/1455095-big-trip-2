@@ -1,6 +1,7 @@
+// /src/presenter/point-presenter.js
 import PointEditView from '/src/view/point-edit-view.js';
 import PointItemView from '/src/view/point-item-view.js';
-import { Mode } from '/src/const.js';
+import { Mode, UserAction } from '/src/const.js';
 import { render, replace, remove } from '/src/framework/render.js';
 import { isEscEvent } from '../utils/utils.js';
 
@@ -110,20 +111,23 @@ export default class PointPresenter {
   };
 
   #handleFormSubmit = (updatedPoint) => {
-    // Теперь используем колбэк, который передаст данные в модель
-    this.#handlePointChange(updatedPoint);
-    // Форма закрывается после успешного обновления в модели
-  };
-
-  #handleDeleteClick = () => {
+    // Отправляем обновление с указанием типа действия
+    this.#handlePointChange(UserAction.UPDATE_POINT, updatedPoint);
     this.#closeForm();
   };
 
+  #handleDeleteClick = (point) => {
+    // Отправляем действие удаления
+    this.#handlePointChange(UserAction.DELETE_POINT, point || this.#point);
+  };
+
   #handleFavoriteClick = () => {
-    this.#handlePointChange({
+    const updatedPoint = {
       ...this.#point,
       isFavorite: !this.#point.isFavorite
-    });
+    };
+
+    this.#handlePointChange(UserAction.UPDATE_POINT, updatedPoint);
   };
 
   #handleEscKeyDown = (evt) => {

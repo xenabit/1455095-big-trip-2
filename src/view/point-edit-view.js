@@ -1,3 +1,4 @@
+// /src/view/point-edit-view.js (исправленная версия)
 import AbstractStatefulView from '/src/framework/view/abstract-stateful-view.js';
 import { typeIcons } from '/src/const.js';
 import {
@@ -6,11 +7,8 @@ import {
   FLATPICKR_DATE_FORMAT
 } from '../utils/utils.js';
 
-// Импортируем flatpickr и стили
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
-
-// Дополнительные стили для темы (опционально)
 import 'flatpickr/dist/themes/material_blue.css';
 
 const BLANK_POINT = {
@@ -54,9 +52,6 @@ export default class PointEditView extends AbstractStatefulView {
     return this.#createTemplate(this._state);
   }
 
-  /**
-   * Удаляем компонент и уничтожаем flatpickr инстансы
-   */
   removeElement() {
     super.removeElement();
 
@@ -71,17 +66,51 @@ export default class PointEditView extends AbstractStatefulView {
     }
   }
 
-  /**
-   * Восстанавливаем обработчики после перерисовки
-   */
+  setSaving() {
+    const saveButton = this.element.querySelector('.event__save-btn');
+    if (saveButton) {
+      saveButton.textContent = 'Saving...';
+      saveButton.disabled = true;
+    }
+
+    const resetButton = this.element.querySelector('.event__reset-btn');
+    if (resetButton) {
+      resetButton.disabled = true;
+    }
+  }
+
+  setDeleting() {
+    const resetButton = this.element.querySelector('.event__reset-btn');
+    if (resetButton) {
+      resetButton.textContent = 'Deleting...';
+      resetButton.disabled = true;
+    }
+
+    const saveButton = this.element.querySelector('.event__save-btn');
+    if (saveButton) {
+      saveButton.disabled = true;
+    }
+  }
+
+  resetButtons() {
+    const saveButton = this.element.querySelector('.event__save-btn');
+    if (saveButton) {
+      saveButton.textContent = 'Save';
+      saveButton.disabled = false;
+    }
+
+    const resetButton = this.element.querySelector('.event__reset-btn');
+    if (resetButton) {
+      resetButton.textContent = 'Delete';
+      resetButton.disabled = false;
+    }
+  }
+
   _restoreHandlers() {
     this.#setEventListeners();
     this.#initDatePickers();
   }
 
-  /**
-   * Инициализируем flatpickr для полей дат
-   */
   #initDatePickers() {
     const dateFromInput = this.element.querySelector('#event-start-time-1');
     const dateToInput = this.element.querySelector('#event-end-time-1');
@@ -90,7 +119,6 @@ export default class PointEditView extends AbstractStatefulView {
       return;
     }
 
-    // Настройки для flatpickr согласно ТЗ
     const commonConfig = {
       enableTime: true,
       dateFormat: FLATPICKR_DATE_FORMAT,
@@ -101,7 +129,6 @@ export default class PointEditView extends AbstractStatefulView {
       allowInput: true,
     };
 
-    // Уничтожаем старые инстансы если они есть
     if (this.#dateFromPicker) {
       this.#dateFromPicker.destroy();
     }
@@ -110,7 +137,6 @@ export default class PointEditView extends AbstractStatefulView {
       this.#dateToPicker.destroy();
     }
 
-    // Создаем первый datepicker для даты начала
     this.#dateFromPicker = flatpickr(dateFromInput, {
       ...commonConfig,
       defaultDate: getFormattedEditDateTime(this._state.dateFrom),
@@ -121,15 +147,22 @@ export default class PointEditView extends AbstractStatefulView {
             dateFrom: formattedDate,
           });
 
-          // Обновляем минимальную дату для dateToPicker
           if (this.#dateToPicker) {
             this.#dateToPicker.set('minDate', selectedDates[0]);
           }
         }
       },
+      onClose: (selectedDates) => {
+        // Сохраняем значение при закрытии календаря
+        if (selectedDates[0]) {
+          const formattedDate = selectedDates[0].toISOString();
+          this.updateElement({
+            dateFrom: formattedDate,
+          });
+        }
+      }
     });
 
-    // Создаем второй datepicker для даты окончания
     this.#dateToPicker = flatpickr(dateToInput, {
       ...commonConfig,
       defaultDate: getFormattedEditDateTime(this._state.dateTo),
@@ -142,12 +175,18 @@ export default class PointEditView extends AbstractStatefulView {
           });
         }
       },
+      onClose: (selectedDates) => {
+        // Сохраняем значение при закрытии календаря
+        if (selectedDates[0]) {
+          const formattedDate = selectedDates[0].toISOString();
+          this.updateElement({
+            dateTo: formattedDate,
+          });
+        }
+      }
     });
   }
 
-  /**
-   * Настраивает обработчики событий
-   */
   #setEventListeners() {
     const formElement = this.element.querySelector('.event--edit');
     if (formElement) {
@@ -155,16 +194,17 @@ export default class PointEditView extends AbstractStatefulView {
       formElement.addEventListener('reset', this.#formResetHandler);
     }
 
-
     const typeInputs = this.element.querySelectorAll('.event__type-input');
     typeInputs.forEach((input) => {
       input.addEventListener('change', this.#typeChangeHandler);
     });
 
+    // ОБРАБОТЧИК ДЛЯ DESTINATION - ТОЛЬКО ПРИ ВЫБОРЕ ИЗ СПИСКА
     const destinationInput = this.element.querySelector('.event__input--destination');
     if (destinationInput) {
-      destinationInput.addEventListener('change', this.#destinationChangeHandler);
+      // Используем input вместо blur, чтобы реагировать на выбор из datalist
       destinationInput.addEventListener('input', this.#destinationInputHandler);
+      destinationInput.addEventListener('change', this.#destinationChangeHandler);
     }
 
     const offersCheckboxes = this.element.querySelectorAll('.event__offer-checkbox');
@@ -183,13 +223,9 @@ export default class PointEditView extends AbstractStatefulView {
       rollupButton.addEventListener('click', this.#rollupButtonClickHandler);
     }
 
-    // Инициализируем datepickers
     this.#initDatePickers();
   }
 
-  /**
-   * Обработчик изменения типа точки
-   */
   #typeChangeHandler = (evt) => {
     evt.preventDefault();
     const newType = evt.target.value;
@@ -201,29 +237,7 @@ export default class PointEditView extends AbstractStatefulView {
     });
   };
 
-  /**
-   * Обработчик изменения пункта назначения
-   */
-  #destinationChangeHandler = (evt) => {
-    const destinationName = evt.target.value.trim();
-    if (!destinationName) {
-      return;
-    }
-
-    const destination = this.#destinationsData.find((d) =>
-      d.name.toLowerCase() === destinationName.toLowerCase()
-    );
-
-    if (destination) {
-      this.updateElement({
-        destination: destination.id,
-      });
-    }
-  };
-
-  /**
-   * Обработчик ввода в поле пункта назначения
-   */
+  // ОБРАБОТЧИК ВВОДА ТЕКСТА - ТОЛЬКО ДЛЯ ПОИСКА
   #destinationInputHandler = (evt) => {
     const value = evt.target.value;
     const datalist = this.element.querySelector('#destination-list-1');
@@ -242,9 +256,34 @@ export default class PointEditView extends AbstractStatefulView {
     });
   };
 
-  /**
-   * Обработчик изменения дополнительных предложений
-   */
+  // ОБРАБОТЧИК ВЫБОРА ИЗ СПИСКА - СРАБАТЫВАЕТ ПРИ ВЫБОРЕ ИЗ DATALIST
+  #destinationChangeHandler = (evt) => {
+    const destinationName = evt.target.value.trim();
+
+    if (!destinationName) {
+      this.updateElement({
+        destination: null,
+      });
+      return;
+    }
+
+    // Ищем точное совпадение
+    const destination = this.#destinationsData.find((d) =>
+      d.name.toLowerCase() === destinationName.toLowerCase()
+    );
+
+    if (destination) {
+      this.updateElement({
+        destination: destination.id,
+      });
+    } else {
+      // Если не нашли, destination остается null
+      this.updateElement({
+        destination: null,
+      });
+    }
+  };
+
   #offerChangeHandler = (evt) => {
     const offerId = evt.target.id;
     const isChecked = evt.target.checked;
@@ -261,9 +300,6 @@ export default class PointEditView extends AbstractStatefulView {
     this.updateElement({ offers: updatedOffers });
   };
 
-  /**
-   * Обработчик изменения цены
-   */
   #priceChangeHandler = (evt) => {
     const value = evt.target.value;
     const basePrice = parseInt(value, 10) || 0;
@@ -273,9 +309,6 @@ export default class PointEditView extends AbstractStatefulView {
     }
   };
 
-  /**
-   * Обработчик ввода цены (валидация)
-   */
   #priceInputHandler = (evt) => {
     const value = evt.target.value;
     if (!/^\d*$/.test(value)) {
@@ -283,35 +316,134 @@ export default class PointEditView extends AbstractStatefulView {
     }
   };
 
-  /**
-   * Обработчик отправки формы
-   */
+  // /src/view/point-edit-view.js (исправляем обработчик submit)
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
 
-    // Получаем актуальные значения из flatpickr
-    if (this.#dateFromPicker && this.#dateFromPicker.input) {
-      const dateFromValue = this.#dateFromPicker.input.value;
-      if (dateFromValue) {
-        this._state.dateFrom = parseFlatpickrDate(dateFromValue);
+    // Делаем валидацию асинхронно, чтобы не блокировать UI
+    requestAnimationFrame(() => {
+      if (!this.#validateForm()) {
+        this.shake(() => {
+          this.resetButtons();
+        });
+        return;
       }
-    }
 
-    if (this.#dateToPicker && this.#dateToPicker.input) {
-      const dateToValue = this.#dateToPicker.input.value;
-      if (dateToValue) {
-        this._state.dateTo = parseFlatpickrDate(dateToValue);
+      // Собираем данные из формы
+      const formData = this.#collectFormData();
+
+      if (!formData) {
+        return;
       }
-    }
 
-    if (this.#handleSubmit) {
-      this.#handleSubmit(this.#stateToPoint());
-    }
+      if (this.#handleSubmit) {
+        this.#handleSubmit(formData);
+      }
+    });
   };
 
-  /**
-   * Обработчик сброса формы
-   */
+  // СОБИРАЕМ ДАННЫЕ ИЗ ФОРМЫ БЕЗОПАСНО
+  #collectFormData() {
+    // Собираем данные с полей формы
+    const destinationInput = this.element.querySelector('.event__input--destination');
+    const priceInput = this.element.querySelector('.event__input--price');
+    const dateFromInput = this.element.querySelector('#event-start-time-1');
+    const dateToInput = this.element.querySelector('#event-end-time-2');
+
+    if (!destinationInput || !priceInput) {
+      console.error('Form fields not found');
+      return null;
+    }
+
+    const destinationName = destinationInput.value.trim();
+    const priceValue = priceInput.value;
+
+    // Находим destination
+    const destination = this.#destinationsData.find((d) =>
+      d.name.toLowerCase() === destinationName.toLowerCase()
+    );
+
+    if (!destination) {
+      alert(`Destination "${destinationName}" not found. Please select from the list.`);
+      destinationInput.focus();
+      return null;
+    }
+
+    // Безопасно парсим даты
+    let dateFrom = this._state.dateFrom;
+    let dateTo = this._state.dateTo;
+
+    // Если есть значения из flatpickr, используем их
+    if (this.#dateFromPicker && this.#dateFromPicker.selectedDates[0]) {
+      dateFrom = this.#dateFromPicker.selectedDates[0].toISOString();
+    } else if (dateFromInput && dateFromInput.value) {
+      try {
+        dateFrom = parseFlatpickrDate(dateFromInput.value);
+      } catch (error) {
+        console.error('Error parsing dateFrom:', error);
+      }
+    }
+
+    if (this.#dateToPicker && this.#dateToPicker.selectedDates[0]) {
+      dateTo = this.#dateToPicker.selectedDates[0].toISOString();
+    } else if (dateToInput && dateToInput.value) {
+      try {
+        dateTo = parseFlatpickrDate(dateToInput.value);
+      } catch (error) {
+        console.error('Error parsing dateTo:', error);
+      }
+    }
+
+    // Проверяем корректность дат
+    if (!dateFrom || !dateTo || new Date(dateTo) <= new Date(dateFrom)) {
+      alert('Please select valid dates. End date must be after start date.');
+      return null;
+    }
+
+    return {
+      id: this._state.id,
+      basePrice: Number(priceValue) || 0,
+      dateFrom: dateFrom,
+      dateTo: dateTo,
+      destination: destination.id,
+      isFavorite: this._state.isFavorite,
+      offers: this._state.offers,
+      type: this._state.type,
+    };
+  }
+
+  // УПРОЩЕННАЯ ВАЛИДАЦИЯ ФОРМЫ
+  #validateForm() {
+    const destinationInput = this.element.querySelector('.event__input--destination');
+    const priceInput = this.element.querySelector('.event__input--price');
+
+    if (!destinationInput || !destinationInput.value.trim()) {
+      alert('Please select a destination');
+      destinationInput?.focus();
+      return false;
+    }
+
+    // Проверяем, что destination существует
+    const destinationName = destinationInput.value.trim();
+    const destinationExists = this.#destinationsData.some((d) =>
+      d.name.toLowerCase() === destinationName.toLowerCase()
+    );
+
+    if (!destinationExists) {
+      alert(`Destination "${destinationName}" not found. Please select from the list.`);
+      destinationInput.focus();
+      return false;
+    }
+
+    if (!priceInput || !priceInput.value || parseInt(priceInput.value) <= 0) {
+      alert('Please enter a valid price (greater than 0)');
+      priceInput?.focus();
+      return false;
+    }
+
+    return true;
+  }
+
   #formResetHandler = (evt) => {
     evt.preventDefault();
     if (this.#handleDelete) {
@@ -319,9 +451,6 @@ export default class PointEditView extends AbstractStatefulView {
     }
   };
 
-  /**
-   * Обработчик клика по кнопке свернуть - ИСПРАВЛЕННАЯ СТРЕЛОЧНАЯ ФУНКЦИЯ
-   */
   #rollupButtonClickHandler = (evt) => {
     evt.preventDefault();
     if (this.#handleRollupClick) {
@@ -329,10 +458,6 @@ export default class PointEditView extends AbstractStatefulView {
     }
   };
 
-
-  /**
-   * Преобразует данные точки в состояние компонента
-   */
   #pointToState(pointData) {
     return {
       id: pointData.id,
@@ -346,9 +471,6 @@ export default class PointEditView extends AbstractStatefulView {
     };
   }
 
-  /**
-   * Преобразует состояние компонента в данные точки
-   */
   #stateToPoint() {
     return {
       id: this._state.id,
@@ -362,9 +484,6 @@ export default class PointEditView extends AbstractStatefulView {
     };
   }
 
-  /**
-   * Создает шаблон на основе состояния
-   */
   #createTemplate(state) {
     const {
       basePrice,
@@ -431,7 +550,8 @@ export default class PointEditView extends AbstractStatefulView {
                      name="event-destination"
                      value="${destinationName}"
                      list="destination-list-1"
-                     autocomplete="off">
+                     autocomplete="off"
+                     placeholder="Select destination...">
               <datalist id="destination-list-1">
                 ${this.#destinationsData.map((d) =>
     `<option value="${d.name}"></option>`
@@ -448,9 +568,9 @@ export default class PointEditView extends AbstractStatefulView {
                      value="${getFormattedEditDateTime(dateFrom)}"
                      data-input>
               &mdash;
-              <label class="visually-hidden" for="event-end-time-1">To</label>
+              <label class="visually-hidden" for="event-end-time-2">To</label>
               <input class="event__input event__input--time flatpickr-input"
-                     id="event-end-time-1"
+                     id="event-end-time-2"
                      type="text"
                      name="event-end-time"
                      value="${getFormattedEditDateTime(dateTo)}"
@@ -467,8 +587,10 @@ export default class PointEditView extends AbstractStatefulView {
                      type="number"
                      name="event-price"
                      value="${basePrice}"
-                     min="0"
-                     step="1">
+                     min="1"
+                     step="1"
+                     placeholder="0"
+                     required>
             </div>
 
             <button class="event__save-btn btn btn--blue" type="submit">Save</button>
@@ -509,9 +631,6 @@ export default class PointEditView extends AbstractStatefulView {
     `;
   }
 
-  /**
-   * Создает варианты типов точек
-   */
   #createTypeOptions(currentType) {
     const types = [
       { value: 'taxi', label: 'Taxi' },
@@ -541,9 +660,6 @@ export default class PointEditView extends AbstractStatefulView {
     `).join('');
   }
 
-  /**
-   * Сбрасывает состояние формы
-   */
   reset(pointData) {
     this._state = this.#pointToState(pointData);
     this.updateElement({});

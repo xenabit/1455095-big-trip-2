@@ -1,3 +1,4 @@
+// /src/const.js (проверяем, что есть иконка для null)
 const typeIcons = {
   taxi: 'img/icons/taxi.png',
   bus: 'img/icons/bus.png',
@@ -8,8 +9,9 @@ const typeIcons = {
   'check-in': 'img/icons/check-in.png',
   sightseeing: 'img/icons/sightseeing.png',
   restaurant: 'img/icons/restaurant.png',
-  null: 'img/icons/transport.png',
+  null: 'img/icons/transport.png', // Убедитесь, что этот путь существует
 };
+
 
 const Mode = {
   DEFAULT: 'DEFAULT',
@@ -37,4 +39,13 @@ const FilterType = {
   PAST: 'past'
 };
 
-export { typeIcons, Mode, SortType, UpdateType, FilterType };
+// /src/const.js (дополняем существующий файл)
+
+const UserAction = {
+  UPDATE_POINT: 'UPDATE_POINT',
+  ADD_POINT: 'ADD_POINT',
+  DELETE_POINT: 'DELETE_POINT',
+};
+
+// Экспортируем вместе с остальными константами
+export { typeIcons, Mode, SortType, UpdateType, FilterType, UserAction };

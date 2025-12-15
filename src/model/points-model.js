@@ -1,17 +1,14 @@
 // /src/model/points-model.js
-
 import { mockPoints } from '../mock/mock-points.js';
-import Observable from '../framework/observable.js'; // Наследуемся от Observable
+import Observable from '../framework/observable.js';
 
 export default class PointsModel extends Observable {
   #points = mockPoints;
 
-  // Метод для получения точек (оставляем без изменений)
   getPoints() {
     return this.#points;
   }
 
-  // Метод для обновления конкретной точки
   updatePoint(updateType, updatedPoint) {
     if (!updatedPoint || !updatedPoint.id) {
       throw new Error('Invalid point data: missing id');
@@ -23,34 +20,39 @@ export default class PointsModel extends Observable {
       throw new Error(`Point with id ${updatedPoint.id} not found`);
     }
 
-    // Иммутабельное обновление
     this.#points = [
       ...this.#points.slice(0, index),
       updatedPoint,
       ...this.#points.slice(index + 1)
     ];
 
-    // Уведомляем подписчиков об изменении
     this._notify(updateType, updatedPoint);
   }
 
-  // Метод для добавления новой точки
   addPoint(updateType, newPoint) {
     if (!newPoint) {
       throw new Error('Invalid point data');
     }
 
-    // Генерируем уникальный ID (в реальном приложении это делается на бэкенде)
-    const pointWithId = {
-      ...newPoint,
-      id: Date.now() // Временное решение для моковых данных
+    // ПРИВОДИМ ДАННЫЕ К ПРАВИЛЬНОМУ ФОРМАТУ
+    const formattedPoint = {
+      id: Date.now(),
+      base_price: Number(newPoint.basePrice) || 0,
+      date_from: newPoint.dateFrom || new Date().toISOString(),
+      date_to: newPoint.dateTo || new Date(Date.now() + 3600000).toISOString(),
+      destination: newPoint.destination || null,
+      is_favorite: newPoint.isFavorite || false,
+      offers: newPoint.offers || [],
+      type: newPoint.type || 'flight',
     };
 
-    this.#points = [pointWithId, ...this.#points];
-    this._notify(updateType, pointWithId);
+    // ВАЖНО: добавляем в начало массива для правильной сортировки
+    this.#points = [formattedPoint, ...this.#points];
+
+    // Уведомляем с обновленными данными
+    this._notify(updateType, formattedPoint);
   }
 
-  // Метод для удаления точки
   deletePoint(updateType, pointId) {
     const index = this.#points.findIndex((point) => point.id === pointId);
 

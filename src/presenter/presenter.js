@@ -1,22 +1,19 @@
+// /src/presenter/presenter.js
 import PointsListView from '/src/view/points-list-view';
-import FilterView from '/src/view/filter-view';
 import SortView from '/src/view/sort-view';
 import PointPresenter from './point-presenter.js';
+import NewEventButtonView from '../view/new-event-button-view.js';
+import NewPointPresenter from './new-point-presenter.js';
 import { render, remove } from '../framework/render.js';
 
-
-import { SortType, UpdateType, FilterType } from '/src/const.js';
+import { SortType, UpdateType, FilterType, UserAction } from '/src/const.js';
 import { filterPoints } from '/src/utils/filter.js';
 import NoPointView from '/src/view/no-point-view.js';
 
-
-const body = document.querySelector('.page-body');
-const eventsSection = body.querySelector('.trip-events');
-const filterSection = body.querySelector('.trip-controls__filters');
-
 export default class Presenter {
   #pointsListComponent = new PointsListView();
-  #sortComponent = null; // FilterView теперь не здесь
+  #sortComponent = null;
+  #newEventButtonComponent = null;
 
   #pointPresenters = new Map();
   #pointsModel = null;
@@ -27,31 +24,31 @@ export default class Presenter {
   #currentSortType = SortType.DAY;
   #renderedPoints = [];
   #noPointComponent = null;
+  #newPointPresenter = null;
 
   constructor({
     pointsModel,
     destinationsModel,
     offersModel,
-    filterModel,
+    filterModel
   }) {
     this.#pointsModel = pointsModel;
     this.#destinationsModel = destinationsModel;
     this.#offersModel = offersModel;
     this.#filterModel = filterModel;
 
-    // Подписываемся на изменения в моделях
     this.#pointsModel.addObserver(this.#handleModelEvent);
     this.#filterModel.addObserver(this.#handleModelEvent);
   }
 
   init() {
-    // FilterView теперь инициализируется FilterPresenter'ом
+    // Инициализируем кнопку New Event
+    this.#initNewEventButton();
 
     this.#sortComponent = new SortView({
       onSortTypeChange: this.#handleSortTypeChange
     });
 
-    // Получаем контейнер из DOM
     const eventsSection = document.querySelector('.trip-events');
     if (!eventsSection) {
       console.error('Could not find .trip-events container');
@@ -64,6 +61,97 @@ export default class Presenter {
     this.#renderAllPoints();
   }
 
+  #initNewEventButton() {
+    const tripMainElement = document.querySelector('.trip-main');
+
+    if (!tripMainElement) {
+      console.error('Could not find .trip-main container');
+      return;
+    }
+
+    this.#newEventButtonComponent = new NewEventButtonView({
+      onClick: this.#handleNewEventButtonClick
+    });
+
+    const tripControls = tripMainElement.querySelector('.trip-controls');
+    if (tripControls) {
+      tripControls.before(this.#newEventButtonComponent.element);
+    } else {
+      tripMainElement.append(this.#newEventButtonComponent.element);
+    }
+  }
+
+  #handleNewEventButtonClick = () => {
+    // Сбрасываем фильтр на "Everything" при создании новой точки
+    this.#filterModel.setFilter(UpdateType.MAJOR, FilterType.EVERYTHING);
+
+    // Сбрасываем сортировку на DAY
+    this.#currentSortType = SortType.DAY;
+    if (this.#sortComponent) {
+      this.#sortComponent.setSortType(SortType.DAY);
+    }
+
+    // Закрываем все открытые формы редактирования
+    this.#handleModeChange();
+
+    // Создаем презентер для новой точки
+    this.createPoint();
+  };
+
+  createPoint() {
+    // Если уже есть активная форма создания - не создаем новую
+    if (this.#newPointPresenter) {
+      return;
+    }
+
+    this.#newPointPresenter = new NewPointPresenter({
+      container: this.#pointsListComponent.element,
+      destinationsModel: this.#destinationsModel,
+      offersModel: this.#offersModel,
+      onDataChange: this.#handleViewAction,
+      onDestroy: this.#handleNewPointDestroy
+    });
+
+    this.#newPointPresenter.init();
+
+    // Блокируем кнопку New Event
+    if (this.#newEventButtonComponent) {
+      this.#newEventButtonComponent.disable();
+    }
+  }
+
+  #handleNewPointDestroy = () => {
+    // Очищаем ссылку на презентер
+    this.#newPointPresenter = null;
+
+    // Разблокируем кнопку New Event
+    if (this.#newEventButtonComponent) {
+      this.#newEventButtonComponent.enable();
+    }
+  };
+
+  #handleViewAction = (actionType, payload) => {
+    console.log(`View action: ${actionType}`, payload);
+
+    switch (actionType) {
+      case UserAction.UPDATE_POINT:
+        this.#pointsModel.updatePoint(UpdateType.MINOR, payload);
+        break;
+      case UserAction.ADD_POINT:
+        // Устанавливаем состояние "сохранение" для формы
+        if (this.#newPointPresenter) {
+          this.#newPointPresenter.setSaving();
+        }
+
+        this.#pointsModel.addPoint(UpdateType.MINOR, payload);
+        break;
+      case UserAction.DELETE_POINT:
+        this.#pointsModel.deletePoint(UpdateType.MINOR, payload.id || payload);
+        break;
+      default:
+        throw new Error(`Unknown action type: ${actionType}`);
+    }
+  };
 
   #handleModelEvent = (updateType, payload) => {
     console.log(`Model event: ${updateType}`, payload);
@@ -73,17 +161,16 @@ export default class Presenter {
         this.#updatePoint(payload);
         break;
       case UpdateType.MINOR:
-        // Для MINOR обновлений перерисовываем только если точка видна в текущем фильтре
-        const filteredPoints = this.#getFilteredPoints();
-        const isPointVisible = filteredPoints.some((point) => point.id === payload?.id);
-
-        if (isPointVisible) {
-          this.#clearPoints();
-          this.#renderAllPoints();
+        // После успешного добавления новой точки закрываем форму
+        if (this.#newPointPresenter) {
+          this.#newPointPresenter.destroy();
+          // Не вызываем #handleNewPointDestroy здесь - он вызовется из destroy()
         }
+
+        this.#clearPoints();
+        this.#renderAllPoints();
         break;
       case UpdateType.MAJOR:
-        // При смене фильтра или других MAJOR изменениях
         this.#currentSortType = SortType.DAY;
         if (this.#sortComponent) {
           this.#sortComponent.setSortType(SortType.DAY);
@@ -107,7 +194,6 @@ export default class Presenter {
   #getSortedPoints(sortType = this.#currentSortType) {
     const filteredPoints = this.#getFilteredPoints();
 
-    // Если фильтр не оставил точек, возвращаем пустой массив
     if (filteredPoints.length === 0) {
       return [];
     }
@@ -150,23 +236,21 @@ export default class Presenter {
       message: messages[filterType] || messages[FilterType.EVERYTHING]
     });
 
+    const eventsSection = document.querySelector('.trip-events');
     render(this.#noPointComponent, eventsSection);
   }
 
-  #handlePointChange = (updatedPoint) => {
-    // Используем модель для обновления данных
-    this.#pointsModel.updatePoint(UpdateType.MINOR, updatedPoint);
+  #handlePointChange = (actionType, updatedPoint) => {
+    this.#handleViewAction(actionType, updatedPoint);
   };
 
   #updatePoint = (updatedPoint) => {
-    // Обновляем конкретный презентер точки
     const pointPresenter = this.#pointPresenters.get(updatedPoint.id);
 
     if (pointPresenter) {
       pointPresenter.init(updatedPoint);
     }
   };
-
 
   #needToRerender(sortedPoints) {
     if (this.#renderedPoints.length !== sortedPoints.length) {
@@ -187,7 +271,6 @@ export default class Presenter {
       return;
     }
 
-
     const sortedPoints = this.#getSortedPoints(sortType);
 
     if (this.#needToRerender(sortedPoints)) {
@@ -199,14 +282,11 @@ export default class Presenter {
     }
   };
 
-
   #handleModeChange = () => {
     this.#pointPresenters.forEach((presenter) => presenter.resetView());
   };
 
-
   #renderAllPoints() {
-    // Очищаем заглушку, если она есть
     if (this.#noPointComponent) {
       remove(this.#noPointComponent);
       this.#noPointComponent = null;
@@ -214,7 +294,6 @@ export default class Presenter {
 
     const sortedPoints = this.#getSortedPoints();
 
-    // Если точек нет, показываем заглушку
     if (sortedPoints.length === 0) {
       this.#renderNoPoints();
       return;
@@ -237,13 +316,11 @@ export default class Presenter {
   }
 
   #clearPoints() {
-    // Очищаем заглушку
     if (this.#noPointComponent) {
       remove(this.#noPointComponent);
       this.#noPointComponent = null;
     }
 
-    // Очищаем точки
     this.#pointPresenters.forEach((presenter) => presenter.destroy());
     this.#pointPresenters.clear();
   }
