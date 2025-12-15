@@ -1,57 +1,77 @@
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
-dayjs.extend(duration);
 
-const EVENT_DAY_FORMAT = 'MMM D';
-const EVENT_DAY_DATATIME_ATTR_FORMAT = 'YYYY-MM-DD';
-const EVENT_TIME_FORMAT = 'HH:mm';
-const EVENT_TIME_DATATIME_ATTR_FORMAT = 'YYYY-MM-DDTHH:mm';
-const EDIT_DATE_TIME_FORMAT = 'DD/MM/YY HH:mm';
+dayjs.extend(duration);
 
 const Keys = {
   ESC: 'Esc',
   ESCAPE: 'Escape',
 };
 
-function getFormattedEventDay(dueDate) {
-  return dueDate ? dayjs(dueDate).format(EVENT_DAY_FORMAT) : '';
+const EVENT_DAY_FORMAT = 'MMM D';
+const EVENT_DAY_DATATIME_ATTR_FORMAT = 'YYYY-MM-DD';
+const EVENT_TIME_FORMAT = 'HH:mm';
+const EVENT_TIME_DATATIME_ATTR_FORMAT = 'YYYY-MM-DDTHH:mm';
+const EDIT_DATE_TIME_FORMAT = 'DD/MM/YY HH:mm';
+const FLATPICKR_DATE_FORMAT = 'd/m/y H:i';
+
+function getFormattedEventDay(date) {
+  return date ? dayjs(date).format(EVENT_DAY_FORMAT) : '';
 }
 
-function getFormattedAttrEventDay(dueDate) {
-  return dueDate ? dayjs(dueDate).format(EVENT_DAY_DATATIME_ATTR_FORMAT) : '';
+function getFormattedAttrEventDay(date) {
+  return date ? dayjs(date).format(EVENT_DAY_DATATIME_ATTR_FORMAT) : '';
 }
 
-function getFormattedTimeEvent(dueDate) {
-  return dueDate ? dayjs(dueDate).format(EVENT_TIME_FORMAT) : '';
+function getFormattedTimeEvent(date) {
+  return date ? dayjs(date).format(EVENT_TIME_FORMAT) : '';
 }
 
-function getFormattedAttrDatatimeEvent(dueDate) {
-  return dueDate ? dayjs(dueDate).format(EVENT_TIME_DATATIME_ATTR_FORMAT) : '';
+function getFormattedAttrDatatimeEvent(date) {
+  return date ? dayjs(date).format(EVENT_TIME_DATATIME_ATTR_FORMAT) : '';
 }
 
-function getFormattedEditDateTime(dueDate) {
-  return dueDate ? dayjs(dueDate).format(EDIT_DATE_TIME_FORMAT) : '';
+function getFormattedEditDateTime(date) {
+  return date ? dayjs(date).format(EDIT_DATE_TIME_FORMAT) : '';
 }
 
-function getTimeDuration(start, end) {
-  const startObj = dayjs(start);
-  const endObj = dayjs(end);
+function getTimeDuration(startDate, endDate) {
+  if (!startDate || !endDate) {
+    return '';
+  }
 
-  const diff = endObj.diff(startObj);
+  const start = dayjs(startDate);
+  const end = dayjs(endDate);
+  const diff = end.diff(start);
+
+  if (diff <= 0) {
+    return '0M';
+  }
 
   const durationObj = dayjs.duration(diff);
-
-  const days = durationObj.days();
+  const days = Math.floor(durationObj.asDays());
   const hours = durationObj.hours();
   const minutes = durationObj.minutes();
 
-  const formattedDuration = `
-    ${days > 0 ? `${days}D ` : ''}
-    ${hours > 0 ? `${hours}H ` : ''}
-    ${minutes > 0 ? `${minutes}M` : ''}
-  `.trim();
+  const parts = [];
 
-  return formattedDuration;
+  if (days > 0) {
+    parts.push(`${days}D`);
+  }
+
+  if (hours > 0) {
+    parts.push(`${hours}H`);
+  }
+
+  if (minutes > 0 || (days === 0 && hours === 0)) {
+    parts.push(`${minutes}M`);
+  }
+
+  return parts.join(' ');
+}
+
+function parseFlatpickrDate(flatpickrDate) {
+  return flatpickrDate ? dayjs(flatpickrDate, EDIT_DATE_TIME_FORMAT).toISOString() : '';
 }
 
 const isEscEvent = (evt) =>
@@ -64,5 +84,8 @@ export {
   getFormattedAttrDatatimeEvent,
   getTimeDuration,
   getFormattedEditDateTime,
-  isEscEvent
+  parseFlatpickrDate,
+  isEscEvent,
+  EDIT_DATE_TIME_FORMAT,
+  FLATPICKR_DATE_FORMAT
 };

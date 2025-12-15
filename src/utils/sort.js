@@ -1,4 +1,5 @@
 import { SortType } from '../const.js';
+import dayjs from 'dayjs';
 
 export const sortPoints = (points, sortType = SortType.DAY) => {
   if (!points.length) {
@@ -8,22 +9,22 @@ export const sortPoints = (points, sortType = SortType.DAY) => {
   const pointsCopy = [...points];
 
   const sortByDay = (items) => items.sort((a, b) => {
-    const dateA = new Date(a.date_from);
-    const dateB = new Date(b.date_from);
+    const dateA = dayjs(a.date_from);
+    const dateB = dayjs(b.date_from);
 
-    if (dateA.getTime() === dateB.getTime()) {
+    if (dateA.isSame(dateB)) {
       return a.id - b.id;
     }
 
-    return dateA - dateB;
+    return dateA.isBefore(dateB) ? -1 : 1;
   });
 
   const sortByTime = (items) => items.sort((a, b) => {
-    const durationA = new Date(a.date_to) - new Date(a.date_from);
-    const durationB = new Date(b.date_to) - new Date(b.date_from);
+    const durationA = dayjs(a.date_to).diff(dayjs(a.date_from));
+    const durationB = dayjs(b.date_to).diff(dayjs(b.date_from));
 
     if (durationA === durationB) {
-      return new Date(a.date_from) - new Date(b.date_from);
+      return dayjs(a.date_from).diff(dayjs(b.date_from));
     }
 
     return durationB - durationA;
@@ -38,19 +39,15 @@ export const sortPoints = (points, sortType = SortType.DAY) => {
 
     return b.base_price - a.base_price;
   });
+
   switch (sortType) {
     case SortType.DAY:
       return sortByDay(pointsCopy);
-
     case SortType.TIME:
       return sortByTime(pointsCopy);
-
     case SortType.PRICE:
       return sortByPrice(pointsCopy);
-
     default:
       return pointsCopy;
   }
 };
-
-

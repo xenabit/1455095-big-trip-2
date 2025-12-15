@@ -2,7 +2,7 @@ import PointEditView from '/src/view/point-edit-view.js';
 import PointItemView from '/src/view/point-item-view.js';
 import { Mode } from '/src/const.js';
 import { render, replace, remove } from '/src/framework/render.js';
-import { isEscEvent } from '../utils/utils';
+import { isEscEvent } from '../utils/utils.js';
 
 export default class PointPresenter {
   #container = null;
@@ -55,6 +55,7 @@ export default class PointPresenter {
         offersData: this.#offersModel.getOffers(),
       },
       this.#handleFormSubmit,
+      this.#handleDeleteClick,
       this.#handleRollupClick
     );
 
@@ -113,6 +114,9 @@ export default class PointPresenter {
     this.#closeForm();
   };
 
+  #handleDeleteClick = () => {
+    this.#closeForm();
+  };
 
   #handleFavoriteClick = () => {
     this.#handlePointChange({
