@@ -28,38 +28,41 @@ function createLayout(pointData, destinationsData, offersData) {
   const eventTimeEndAttr = getFormattedAttrDatatimeEvent(dateTo);
   const timeDurationInMinutes = getTimeDuration(dateFrom, dateTo);
 
-  let nameOfdestination = null;
+  // НАЙДЕМ НАЗВАНИЕ НАПРАВЛЕНИЯ БЕЗОПАСНО
+  let nameOfDestination = '';
+  if (destination && destinationsData) {
+    const destinationItem = destinationsData.find((element) => destination === element.id);
+    nameOfDestination = destinationItem ? destinationItem.name : '';
+  }
+
+  // НАЙДЕМ ВЫБРАННЫЕ ПРЕДЛОЖЕНИЯ БЕЗОПАСНО
   let selectedOffers = [];
+  if (offersData && offers) {
+    offersData.forEach((offerData) => {
+      if (offerData.type === type) {
+        const currentTypeOffersData = offerData.offers;
 
-  destinationsData.forEach((element) => {
-    if (destination === element.id) {
-      nameOfdestination = element.name;
-    }
-  });
+        selectedOffers = offers.map((id) => {
+          const matchedOffer = currentTypeOffersData.find(
+            (element) => element.id === id
+          );
+          return matchedOffer;
+        }).filter(Boolean); // Убираем undefined
+      }
+    });
+  }
 
-  offersData.forEach((offerData) => {
-    if (offerData.type === type) {
-      const currentTypeOffersData = offerData.offers;
-
-      selectedOffers = offers.map((id) => {
-        const mathedOffer = currentTypeOffersData.find(
-          (element) => element.id === id
-        );
-        return mathedOffer;
-      });
-    }
-  });
+  // ИСПРАВЛЯЕМ ИКОНКУ - ЕСЛИ typeIcons[type] НЕ СУЩЕСТВУЕТ, ИСПОЛЬЗУЕМ ЗАПАСНУЮ
+  const iconSrc = typeIcons[type] || typeIcons.null;
 
   return `
         <li class="trip-events__item">
           <div class="event">
             <time class="event__date" datetime="${eventDayAttr}">${eventDay}</time>
             <div class="event__type">
-              <img class="event__type-icon" width="42" height="42" src="${
-  typeIcons[type]
-}" alt="Event type icon">
+              <img class="event__type-icon" width="42" height="42" src="${iconSrc}" alt="Event type icon">
             </div>
-            <h3 class="event__title">${nameOfdestination}</h3>
+            <h3 class="event__title">${nameOfDestination || 'New Point'}</h3>
             <div class="event__schedule">
               <p class="event__time">
                 <time class="event__start-time" datetime="${eventTimeStartAttr}">${eventTimeStart}</time>
@@ -69,25 +72,21 @@ function createLayout(pointData, destinationsData, offersData) {
               <p class="event__duration">${timeDurationInMinutes}</p>
             </div>
             <p class="event__price">
-              &euro;&nbsp;<span class="event__price-value">${basePrice}</span>
+              &euro;&nbsp;<span class="event__price-value">${basePrice || 0}</span>
             </p>
-            <h4 class="visually-hidden">Offers:</h4>
-            <ul class="event__selected-offers">
-            ${selectedOffers
-    .map(
-      (item) => `
-              <li class="event__offer">
-                <span class="event__offer-title">${item.title}</span>
-                &plus;&euro;&nbsp;
-                <span class="event__offer-price">${item.price}</span>
-              </li>
-            `
-    )
-    .join('')}
-            </ul>
-            <button class="event__favorite-btn ${
-  isFavorite ? 'event__favorite-btn--active' : ''
-} " type="button">
+            ${selectedOffers.length > 0 ? `
+              <h4 class="visually-hidden">Offers:</h4>
+              <ul class="event__selected-offers">
+              ${selectedOffers.map((item) => `
+                <li class="event__offer">
+                  <span class="event__offer-title">${item.title}</span>
+                  &plus;&euro;&nbsp;
+                  <span class="event__offer-price">${item.price}</span>
+                </li>
+              `).join('')}
+              </ul>
+            ` : ''}
+            <button class="event__favorite-btn ${isFavorite ? 'event__favorite-btn--active' : ''}" type="button">
               <span class="visually-hidden">Add to favorite</span>
               <svg class="event__favorite-icon" width="28" height="28" viewBox="0 0 28 28">
                 <path d="M14 21l-8.22899 4.3262 1.57159-9.1631L.685209 9.67376 9.8855 8.33688 14 0l4.1145 8.33688 9.2003 1.33688-6.6574 6.48934 1.5716 9.1631L14 21z"/>
@@ -116,15 +115,11 @@ export default class PointItemView extends AbstractView {
     this.#handleRollupClick = handleRollupClick;
     this.#handleFavoriteClick = handleFavoriteClick;
 
-    this.#setEventListeners();
-  }
+    this.element.querySelector('.event__rollup-btn')
+      ?.addEventListener('click', this.#rollupButtonClickHandler);
 
-  #setEventListeners() {
-    const itemElement = this.element.querySelector('.event__rollup-btn');
-    itemElement.addEventListener('click', this.#handleRollupClick);
-
-    const favoriteElement = this.element.querySelector('.event__favorite-btn');
-    favoriteElement.addEventListener('click', this.#handleFavoriteClick);
+    this.element.querySelector('.event__favorite-btn')
+      ?.addEventListener('click', this.#favoriteButtonClickHandler);
   }
 
   get template() {
@@ -134,4 +129,14 @@ export default class PointItemView extends AbstractView {
       this.#offersData
     );
   }
+
+  #rollupButtonClickHandler = (evt) => {
+    evt.preventDefault();
+    this.#handleRollupClick();
+  };
+
+  #favoriteButtonClickHandler = (evt) => {
+    evt.preventDefault();
+    this.#handleFavoriteClick();
+  };
 }

@@ -1,3 +1,4 @@
+// /src/utils/utils.js (исправляем parseFlatpickrDate)
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 
@@ -70,8 +71,32 @@ function getTimeDuration(startDate, endDate) {
   return parts.join(' ');
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ ПАРСИНГА ДАТЫ
 function parseFlatpickrDate(flatpickrDate) {
-  return flatpickrDate ? dayjs(flatpickrDate, EDIT_DATE_TIME_FORMAT).toISOString() : '';
+  if (!flatpickrDate) {
+    return new Date().toISOString();
+  }
+
+  try {
+    // Пытаемся распарсить дату в формате DD/MM/YY HH:mm
+    const parsedDate = dayjs(flatpickrDate, EDIT_DATE_TIME_FORMAT);
+
+    if (parsedDate.isValid()) {
+      return parsedDate.toISOString();
+    }
+
+    // Если не удалось, пробуем стандартный парсинг
+    const fallbackDate = new Date(flatpickrDate);
+    if (!isNaN(fallbackDate.getTime())) {
+      return fallbackDate.toISOString();
+    }
+
+    // Если ничего не работает, возвращаем текущую дату
+    return new Date().toISOString();
+  } catch (error) {
+    console.error('Error parsing date:', error, 'Input:', flatpickrDate);
+    return new Date().toISOString();
+  }
 }
 
 const isEscEvent = (evt) =>

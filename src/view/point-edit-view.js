@@ -1,3 +1,4 @@
+// /src/view/point-edit-view.js (исправляем обработку цены)
 import AbstractStatefulView from '/src/framework/view/abstract-stateful-view.js';
 import { typeIcons } from '/src/const.js';
 import {
@@ -6,11 +7,8 @@ import {
   FLATPICKR_DATE_FORMAT
 } from '../utils/utils.js';
 
-// Импортируем flatpickr и стили
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
-
-// Дополнительные стили для темы (опционально)
 import 'flatpickr/dist/themes/material_blue.css';
 
 const BLANK_POINT = {
@@ -32,6 +30,7 @@ export default class PointEditView extends AbstractStatefulView {
   #handleDelete = null;
   #dateFromPicker = null;
   #dateToPicker = null;
+  #isDestroyed = false;
 
   constructor(
     { pointData = BLANK_POINT, destinationsData, offersData },
@@ -54,11 +53,8 @@ export default class PointEditView extends AbstractStatefulView {
     return this.#createTemplate(this._state);
   }
 
-  /**
-   * Удаляем компонент и уничтожаем flatpickr инстансы
-   */
   removeElement() {
-    super.removeElement();
+    this.#isDestroyed = true;
 
     if (this.#dateFromPicker) {
       this.#dateFromPicker.destroy();
@@ -69,28 +65,79 @@ export default class PointEditView extends AbstractStatefulView {
       this.#dateToPicker.destroy();
       this.#dateToPicker = null;
     }
+
+    super.removeElement();
   }
 
-  /**
-   * Восстанавливаем обработчики после перерисовки
-   */
+  setSaving() {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const saveButton = this.element?.querySelector('.event__save-btn');
+    if (saveButton) {
+      saveButton.textContent = 'Saving...';
+      saveButton.disabled = true;
+    }
+
+    const resetButton = this.element?.querySelector('.event__reset-btn');
+    if (resetButton) {
+      resetButton.disabled = true;
+    }
+  }
+
+  setDeleting() {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const resetButton = this.element?.querySelector('.event__reset-btn');
+    if (resetButton) {
+      resetButton.textContent = 'Deleting...';
+      resetButton.disabled = true;
+    }
+
+    const saveButton = this.element?.querySelector('.event__save-btn');
+    if (saveButton) {
+      saveButton.disabled = true;
+    }
+  }
+
+  resetButtons() {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const saveButton = this.element?.querySelector('.event__save-btn');
+    if (saveButton) {
+      saveButton.textContent = 'Save';
+      saveButton.disabled = false;
+    }
+
+    const resetButton = this.element?.querySelector('.event__reset-btn');
+    if (resetButton) {
+      resetButton.textContent = 'Delete';
+      resetButton.disabled = false;
+    }
+  }
+
   _restoreHandlers() {
     this.#setEventListeners();
     this.#initDatePickers();
   }
 
-  /**
-   * Инициализируем flatpickr для полей дат
-   */
   #initDatePickers() {
-    const dateFromInput = this.element.querySelector('#event-start-time-1');
-    const dateToInput = this.element.querySelector('#event-end-time-1');
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const dateFromInput = this.element?.querySelector('#event-start-time-1');
+    const dateToInput = this.element?.querySelector('#event-end-time-1');
 
     if (!dateFromInput || !dateToInput) {
       return;
     }
 
-    // Настройки для flatpickr согласно ТЗ
     const commonConfig = {
       enableTime: true,
       dateFormat: FLATPICKR_DATE_FORMAT,
@@ -101,7 +148,6 @@ export default class PointEditView extends AbstractStatefulView {
       allowInput: true,
     };
 
-    // Уничтожаем старые инстансы если они есть
     if (this.#dateFromPicker) {
       this.#dateFromPicker.destroy();
     }
@@ -110,26 +156,27 @@ export default class PointEditView extends AbstractStatefulView {
       this.#dateToPicker.destroy();
     }
 
-    // Создаем первый datepicker для даты начала
     this.#dateFromPicker = flatpickr(dateFromInput, {
       ...commonConfig,
       defaultDate: getFormattedEditDateTime(this._state.dateFrom),
       onChange: (selectedDates) => {
         if (selectedDates[0]) {
           const formattedDate = selectedDates[0].toISOString();
-          this.updateElement({
-            dateFrom: formattedDate,
-          });
+          this.#updateStateWithoutRerender({ dateFrom: formattedDate });
 
-          // Обновляем минимальную дату для dateToPicker
           if (this.#dateToPicker) {
             this.#dateToPicker.set('minDate', selectedDates[0]);
           }
         }
       },
+      onClose: (selectedDates) => {
+        if (selectedDates[0]) {
+          const formattedDate = selectedDates[0].toISOString();
+          this.#updateStateWithoutRerender({ dateFrom: formattedDate });
+        }
+      }
     });
 
-    // Создаем второй datepicker для даты окончания
     this.#dateToPicker = flatpickr(dateToInput, {
       ...commonConfig,
       defaultDate: getFormattedEditDateTime(this._state.dateTo),
@@ -137,24 +184,28 @@ export default class PointEditView extends AbstractStatefulView {
       onChange: (selectedDates) => {
         if (selectedDates[0]) {
           const formattedDate = selectedDates[0].toISOString();
-          this.updateElement({
-            dateTo: formattedDate,
-          });
+          this.#updateStateWithoutRerender({ dateTo: formattedDate });
         }
       },
+      onClose: (selectedDates) => {
+        if (selectedDates[0]) {
+          const formattedDate = selectedDates[0].toISOString();
+          this.#updateStateWithoutRerender({ dateTo: formattedDate });
+        }
+      }
     });
   }
 
-  /**
-   * Настраивает обработчики событий
-   */
   #setEventListeners() {
+    if (this.#isDestroyed || !this.element) {
+      return;
+    }
+
     const formElement = this.element.querySelector('.event--edit');
     if (formElement) {
       formElement.addEventListener('submit', this.#formSubmitHandler);
       formElement.addEventListener('reset', this.#formResetHandler);
     }
-
 
     const typeInputs = this.element.querySelectorAll('.event__type-input');
     typeInputs.forEach((input) => {
@@ -163,8 +214,10 @@ export default class PointEditView extends AbstractStatefulView {
 
     const destinationInput = this.element.querySelector('.event__input--destination');
     if (destinationInput) {
-      destinationInput.addEventListener('change', this.#destinationChangeHandler);
       destinationInput.addEventListener('input', this.#destinationInputHandler);
+      destinationInput.addEventListener('change', this.#destinationChangeHandler);
+      destinationInput.addEventListener('keydown', this.#destinationKeydownHandler);
+      destinationInput.addEventListener('blur', this.#destinationBlurHandler);
     }
 
     const offersCheckboxes = this.element.querySelectorAll('.event__offer-checkbox');
@@ -174,8 +227,11 @@ export default class PointEditView extends AbstractStatefulView {
 
     const priceInput = this.element.querySelector('.event__input--price');
     if (priceInput) {
-      priceInput.addEventListener('change', this.#priceChangeHandler);
+      // ОБНОВЛЯЕМ ТОЛЬКО СОСТОЯНИЕ, БЕЗ ПЕРЕРИСОВКИ
       priceInput.addEventListener('input', this.#priceInputHandler);
+      priceInput.addEventListener('change', this.#priceChangeHandler);
+      priceInput.addEventListener('keydown', this.#priceKeydownHandler);
+      priceInput.addEventListener('blur', this.#priceBlurHandler);
     }
 
     const rollupButton = this.element.querySelector('.event__rollup-btn');
@@ -183,17 +239,27 @@ export default class PointEditView extends AbstractStatefulView {
       rollupButton.addEventListener('click', this.#rollupButtonClickHandler);
     }
 
-    // Инициализируем datepickers
     this.#initDatePickers();
   }
 
-  /**
-   * Обработчик изменения типа точки
-   */
+  // ОБНОВЛЯЕМ СОСТОЯНИЕ БЕЗ ПЕРЕРИСОВКИ ЭЛЕМЕНТА
+  #updateStateWithoutRerender(update) {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    if (!update) {
+      return;
+    }
+
+    this._setState(update);
+  }
+
   #typeChangeHandler = (evt) => {
     evt.preventDefault();
     const newType = evt.target.value;
 
+    // Для смены типа нужна перерисовка
     this.updateElement({
       type: newType,
       offers: [],
@@ -201,38 +267,19 @@ export default class PointEditView extends AbstractStatefulView {
     });
   };
 
-  /**
-   * Обработчик изменения пункта назначения
-   */
-  #destinationChangeHandler = (evt) => {
-    const destinationName = evt.target.value.trim();
-    if (!destinationName) {
+  #destinationInputHandler = (evt) => {
+    if (this.#isDestroyed) {
       return;
     }
 
-    const destination = this.#destinationsData.find((d) =>
-      d.name.toLowerCase() === destinationName.toLowerCase()
-    );
-
-    if (destination) {
-      this.updateElement({
-        destination: destination.id,
-      });
-    }
-  };
-
-  /**
-   * Обработчик ввода в поле пункта назначения
-   */
-  #destinationInputHandler = (evt) => {
     const value = evt.target.value;
     const datalist = this.element.querySelector('#destination-list-1');
+
     if (!datalist) {
       return;
     }
 
     const options = Array.from(datalist.querySelectorAll('option'));
-
     options.forEach((option) => {
       if (option.value.toLowerCase().includes(value.toLowerCase())) {
         option.style.display = 'block';
@@ -242,10 +289,101 @@ export default class PointEditView extends AbstractStatefulView {
     });
   };
 
-  /**
-   * Обработчик изменения дополнительных предложений
-   */
+  #destinationChangeHandler = (evt) => {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const destinationName = evt.target.value.trim();
+
+    if (!destinationName) {
+      this.#updateStateWithoutRerender({ destination: null });
+      return;
+    }
+
+    const destination = this.#destinationsData.find((d) =>
+      d.name.toLowerCase() === destinationName.toLowerCase()
+    );
+
+    if (destination) {
+      this.#updateStateWithoutRerender({ destination: destination.id });
+    } else {
+      this.#updateStateWithoutRerender({ destination: null });
+    }
+  };
+
+  #destinationKeydownHandler = (evt) => {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const allowedKeys = [
+      'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+      'Tab', 'Home', 'End'
+    ];
+
+    if (allowedKeys.includes(evt.key)) {
+      return;
+    }
+
+    if (!/^[a-zA-Zа-яА-ЯёЁ\s-]$/.test(evt.key)) {
+      evt.preventDefault();
+    }
+  };
+
+  #destinationBlurHandler = (evt) => {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const destinationInput = evt.target;
+    const destinationName = destinationInput.value.trim();
+
+    if (!destinationName) {
+      return;
+    }
+
+    const destinationExists = this.#destinationsData.some((d) =>
+      d.name.toLowerCase() === destinationName.toLowerCase()
+    );
+
+    if (!destinationExists) {
+      this.#showDestinationError(destinationInput, `"${destinationName}" не найден. Выберите из списка.`);
+      destinationInput.value = '';
+      this.#updateStateWithoutRerender({ destination: null });
+    }
+  };
+
+  #showDestinationError(input, message) {
+    if (this.#isDestroyed || !input.parentElement) {
+      return;
+    }
+
+    let errorElement = input.parentElement.querySelector('.destination-error');
+
+    if (!errorElement) {
+      errorElement = document.createElement('div');
+      errorElement.className = 'destination-error';
+      errorElement.style.color = '#ff6b6b';
+      errorElement.style.fontSize = '12px';
+      errorElement.style.marginTop = '4px';
+      input.parentElement.appendChild(errorElement);
+    }
+
+    errorElement.textContent = message;
+
+    setTimeout(() => {
+      if (errorElement && errorElement.parentElement) {
+        errorElement.remove();
+      }
+    }, 3000);
+  }
+
   #offerChangeHandler = (evt) => {
+    if (this.#isDestroyed) {
+      return;
+    }
+
     const offerId = evt.target.id;
     const isChecked = evt.target.checked;
     let updatedOffers = [...this._state.offers];
@@ -258,60 +396,317 @@ export default class PointEditView extends AbstractStatefulView {
       updatedOffers = updatedOffers.filter((id) => id !== offerId);
     }
 
-    this.updateElement({ offers: updatedOffers });
+    this.#updateStateWithoutRerender({ offers: updatedOffers });
   };
 
-  /**
-   * Обработчик изменения цены
-   */
-  #priceChangeHandler = (evt) => {
-    const value = evt.target.value;
-    const basePrice = parseInt(value, 10) || 0;
-
-    if (basePrice >= 0) {
-      this.updateElement({ basePrice: basePrice });
-    }
-  };
-
-  /**
-   * Обработчик ввода цены (валидация)
-   */
+  // ИСПРАВЛЕННЫЙ ОБРАБОТЧИК ВВОДА ЦЕНЫ - БЕЗ ПЕРЕРИСОВКИ
   #priceInputHandler = (evt) => {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const input = evt.target;
+    const value = input.value;
+
+    // Удаляем все нецифровые символы, кроме минуса в начале
+    const cleanedValue = value.replace(/[^\d-]/g, '');
+
+    // Удаляем минусы не в начале строки
+    let finalValue = cleanedValue.replace(/(?!^-)-/g, '');
+
+    // Ограничиваем одним минусом
+    if (finalValue.startsWith('--')) {
+      finalValue = finalValue.replace(/--+/g, '-');
+    }
+
+    // Если значение изменилось, обновляем поле
+    if (value !== finalValue) {
+      input.value = finalValue;
+    }
+
+    // Обновляем состояние без перерисовки
+    const numericValue = finalValue === '-' || finalValue === '' ? 0 : parseInt(finalValue, 10) || 0;
+    this.#updateStateWithoutRerender({ basePrice: numericValue });
+  };
+
+  #priceChangeHandler = (evt) => {
+    if (this.#isDestroyed) {
+      return;
+    }
+
     const value = evt.target.value;
-    if (!/^\d*$/.test(value)) {
-      evt.target.value = value.replace(/[^\d]/g, '');
+    const basePrice = value === '' ? 0 : parseInt(value, 10) || 0;
+
+    this.#updateStateWithoutRerender({ basePrice: basePrice });
+  };
+
+  #priceKeydownHandler = (evt) => {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const allowedKeys = [
+      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+      '-',
+      'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight',
+      'ArrowUp', 'ArrowDown', 'Tab', 'Home', 'End'
+    ];
+
+    if (evt.ctrlKey && ['a', 'c', 'v', 'x'].includes(evt.key.toLowerCase())) {
+      return;
+    }
+
+    // Разрешаем минус только в начале строки
+    if (evt.key === '-' && evt.target.selectionStart !== 0) {
+      evt.preventDefault();
+      return;
+    }
+
+    if (!allowedKeys.includes(evt.key)) {
+      evt.preventDefault();
     }
   };
 
-  /**
-   * Обработчик отправки формы
-   */
+  #priceBlurHandler = (evt) => {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const input = evt.target;
+    const value = input.value;
+
+    // Если поле пустое или только минус, устанавливаем 0
+    if (!value || value === '' || value === '-') {
+      input.value = '0';
+      this.#updateStateWithoutRerender({ basePrice: 0 });
+      return;
+    }
+
+    const numericValue = parseInt(value, 10);
+
+    // Проверяем минимальное значение
+    if (numericValue < 0) {
+      input.value = '0';
+      this.#updateStateWithoutRerender({ basePrice: 0 });
+      this.#showPriceError(input, 'Цена не может быть отрицательной');
+    }
+  };
+
+  #showPriceError(input, message) {
+    if (this.#isDestroyed || !input.parentElement) {
+      return;
+    }
+
+    let errorElement = input.parentElement.querySelector('.price-error');
+
+    if (!errorElement) {
+      errorElement = document.createElement('div');
+      errorElement.className = 'price-error';
+      errorElement.style.color = '#ff6b6b';
+      errorElement.style.fontSize = '12px';
+      errorElement.style.marginTop = '4px';
+      input.parentElement.appendChild(errorElement);
+    }
+
+    errorElement.textContent = message;
+
+    setTimeout(() => {
+      if (errorElement && errorElement.parentElement) {
+        errorElement.remove();
+      }
+    }, 3000);
+  }
+
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
+    evt.stopPropagation();
 
-    // Получаем актуальные значения из flatpickr
-    if (this.#dateFromPicker && this.#dateFromPicker.input) {
-      const dateFromValue = this.#dateFromPicker.input.value;
-      if (dateFromValue) {
-        this._state.dateFrom = parseFlatpickrDate(dateFromValue);
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    Promise.resolve().then(() => {
+      if (!this.#validateForm()) {
+        this.shake(() => {
+          this.resetButtons();
+        });
+        return;
       }
-    }
 
-    if (this.#dateToPicker && this.#dateToPicker.input) {
-      const dateToValue = this.#dateToPicker.input.value;
-      if (dateToValue) {
-        this._state.dateTo = parseFlatpickrDate(dateToValue);
+      const formData = this.#collectFormData();
+
+      if (!formData) {
+        return;
       }
-    }
 
-    if (this.#handleSubmit) {
-      this.#handleSubmit(this.#stateToPoint());
-    }
+      if (this.#handleSubmit) {
+        this.#handleSubmit(formData);
+      }
+    }).catch((error) => {
+      console.error('Form submit error:', error);
+    });
   };
 
-  /**
-   * Обработчик сброса формы
-   */
+  #collectFormData() {
+    if (this.#isDestroyed || !this.element) {
+      return null;
+    }
+
+    const destinationInput = this.element.querySelector('.event__input--destination');
+    const priceInput = this.element.querySelector('.event__input--price');
+    const dateFromInput = this.element.querySelector('#event-start-time-1');
+    const dateToInput = this.element.querySelector('#event-end-time-1');
+
+    if (!destinationInput || !priceInput) {
+      console.error('Form fields not found');
+      return null;
+    }
+
+    const destinationName = destinationInput.value.trim();
+    const priceValue = priceInput.value;
+
+    const destination = this.#destinationsData.find((d) =>
+      d.name.toLowerCase() === destinationName.toLowerCase()
+    );
+
+    if (!destination) {
+      this.#showDestinationError(destinationInput, `"${destinationName}" не найден. Выберите из списка.`);
+      destinationInput.focus();
+      return null;
+    }
+
+    const price = parseInt(priceValue, 10);
+    if (isNaN(price) || price < 0) {
+      this.#showPriceError(priceInput, 'Введите корректную цену (больше или равно 0)');
+      priceInput.focus();
+      return null;
+    }
+
+    let dateFrom = this._state.dateFrom;
+    let dateTo = this._state.dateTo;
+
+    if (this.#dateFromPicker && this.#dateFromPicker.selectedDates[0]) {
+      dateFrom = this.#dateFromPicker.selectedDates[0].toISOString();
+    } else if (dateFromInput && dateFromInput.value) {
+      try {
+        dateFrom = parseFlatpickrDate(dateFromInput.value);
+      } catch (error) {
+        console.error('Error parsing dateFrom:', error);
+      }
+    }
+
+    if (this.#dateToPicker && this.#dateToPicker.selectedDates[0]) {
+      dateTo = this.#dateToPicker.selectedDates[0].toISOString();
+    } else if (dateToInput && dateToInput.value) {
+      try {
+        dateTo = parseFlatpickrDate(dateToInput.value);
+      } catch (error) {
+        console.error('Error parsing dateTo:', error);
+      }
+    }
+
+    if (!dateFrom || !dateTo || new Date(dateTo) <= new Date(dateFrom)) {
+      alert('Выберите корректные даты. Дата окончания должна быть позже даты начала.');
+      return null;
+    }
+
+    return {
+      id: this._state.id,
+      basePrice: price,
+      dateFrom: dateFrom,
+      dateTo: dateTo,
+      destination: destination.id,
+      isFavorite: this._state.isFavorite,
+      offers: this._state.offers,
+      type: this._state.type,
+    };
+  }
+
+  #validateForm() {
+    if (!this.element) {
+      return false;
+    }
+
+    const destinationInput = this.element.querySelector('.event__input--destination');
+    const priceInput = this.element.querySelector('.event__input--price');
+
+    // Базовые проверки
+    if (!destinationInput || !destinationInput.value.trim()) {
+      this.#showQuickError('Выберите пункт назначения из списка');
+      destinationInput?.focus();
+      return false;
+    }
+
+    const destinationName = destinationInput.value.trim();
+    const destinationExists = this.#destinationsData.some((d) =>
+      d.name.toLowerCase() === destinationName.toLowerCase()
+    );
+
+    if (!destinationExists) {
+      this.#showQuickError(`"${destinationName}" не найден. Выберите из списка.`);
+      destinationInput.focus();
+      return false;
+    }
+
+    // Проверка цены
+    if (!priceInput || !priceInput.value || priceInput.value === '0') {
+      this.#showQuickError('Введите цену больше 0');
+      priceInput?.focus();
+      return false;
+    }
+
+    const price = parseInt(priceInput.value, 10);
+    if (isNaN(price) || price <= 0) {
+      this.#showQuickError('Цена должна быть числом больше 0');
+      priceInput.focus();
+      return false;
+    }
+
+    return true;
+  }
+
+  // БЫСТРЫЙ ПОКАЗ ОШИБОК (без alert)
+  #showQuickError(message) {
+    // Создаем временный элемент ошибки
+    const errorDiv = document.createElement('div');
+    errorDiv.textContent = message;
+    errorDiv.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #ff6b6b;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 4px;
+      z-index: 10000;
+      animation: fadeInOut 3s ease;
+    `;
+
+    // Добавляем стили для анимации
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateY(-10px); }
+        10% { opacity: 1; transform: translateY(0); }
+        90% { opacity: 1; transform: translateY(0); }
+        100% { opacity: 0; transform: translateY(-10px); }
+      }
+    `;
+
+    document.head.appendChild(style);
+    document.body.appendChild(errorDiv);
+
+    // Удаляем через 3 секунды
+    setTimeout(() => {
+      if (errorDiv.parentElement) {
+        errorDiv.remove();
+      }
+      if (style.parentElement) {
+        style.remove();
+      }
+    }, 3000);
+  }
+
   #formResetHandler = (evt) => {
     evt.preventDefault();
     if (this.#handleDelete) {
@@ -319,9 +714,6 @@ export default class PointEditView extends AbstractStatefulView {
     }
   };
 
-  /**
-   * Обработчик клика по кнопке свернуть - ИСПРАВЛЕННАЯ СТРЕЛОЧНАЯ ФУНКЦИЯ
-   */
   #rollupButtonClickHandler = (evt) => {
     evt.preventDefault();
     if (this.#handleRollupClick) {
@@ -329,10 +721,6 @@ export default class PointEditView extends AbstractStatefulView {
     }
   };
 
-
-  /**
-   * Преобразует данные точки в состояние компонента
-   */
   #pointToState(pointData) {
     return {
       id: pointData.id,
@@ -346,9 +734,6 @@ export default class PointEditView extends AbstractStatefulView {
     };
   }
 
-  /**
-   * Преобразует состояние компонента в данные точки
-   */
   #stateToPoint() {
     return {
       id: this._state.id,
@@ -362,9 +747,6 @@ export default class PointEditView extends AbstractStatefulView {
     };
   }
 
-  /**
-   * Создает шаблон на основе состояния
-   */
   #createTemplate(state) {
     const {
       basePrice,
@@ -404,7 +786,7 @@ export default class PointEditView extends AbstractStatefulView {
 
     return `
       <li class="trip-events__item">
-        <form class="event event--edit" action="#" method="post">
+        <form class="event event--edit" action="#" method="post" onsubmit="return false;">
           <header class="event__header">
             <div class="event__type-wrapper">
               <label class="event__type event__type-btn" for="event-type-toggle-1">
@@ -431,7 +813,9 @@ export default class PointEditView extends AbstractStatefulView {
                      name="event-destination"
                      value="${destinationName}"
                      list="destination-list-1"
-                     autocomplete="off">
+                     autocomplete="off"
+                     placeholder="Выберите из списка..."
+                     required>
               <datalist id="destination-list-1">
                 ${this.#destinationsData.map((d) =>
     `<option value="${d.name}"></option>`
@@ -468,7 +852,11 @@ export default class PointEditView extends AbstractStatefulView {
                      name="event-price"
                      value="${basePrice}"
                      min="0"
-                     step="1">
+                     step="1"
+                     pattern="\d*"
+                     inputmode="numeric"
+                     placeholder="0"
+                     required>
             </div>
 
             <button class="event__save-btn btn btn--blue" type="submit">Save</button>
@@ -509,9 +897,6 @@ export default class PointEditView extends AbstractStatefulView {
     `;
   }
 
-  /**
-   * Создает варианты типов точек
-   */
   #createTypeOptions(currentType) {
     const types = [
       { value: 'taxi', label: 'Taxi' },
@@ -541,9 +926,6 @@ export default class PointEditView extends AbstractStatefulView {
     `).join('');
   }
 
-  /**
-   * Сбрасывает состояние формы
-   */
   reset(pointData) {
     this._state = this.#pointToState(pointData);
     this.updateElement({});

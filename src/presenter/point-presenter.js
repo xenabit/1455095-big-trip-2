@@ -1,6 +1,7 @@
+// /src/presenter/point-presenter.js
 import PointEditView from '/src/view/point-edit-view.js';
 import PointItemView from '/src/view/point-item-view.js';
-import { Mode } from '/src/const.js';
+import { Mode, UserAction } from '/src/const.js';
 import { render, replace, remove } from '/src/framework/render.js';
 import { isEscEvent } from '../utils/utils.js';
 
@@ -41,7 +42,7 @@ export default class PointPresenter {
     this.#pointComponent = new PointItemView(
       {
         pointData: this.#point,
-        destinationsData: this.#destinationsModel.getDestination(),
+        destinationsData: this.#destinationsModel.getDestinations(),
         offersData: this.#offersModel.getOffers(),
       },
       this.#handleRollupClick,
@@ -51,7 +52,7 @@ export default class PointPresenter {
     this.#pointEditComponent = new PointEditView(
       {
         pointData: this.#point,
-        destinationsData: this.#destinationsModel.getDestination(),
+        destinationsData: this.#destinationsModel.getDestinations(),
         offersData: this.#offersModel.getOffers(),
       },
       this.#handleFormSubmit,
@@ -109,20 +110,30 @@ export default class PointPresenter {
     }
   };
 
+  // ВАЖНО: Этот метод должен быть простым - только отправляет обновление
   #handleFormSubmit = (updatedPoint) => {
-    this.#handlePointChange(updatedPoint);
+    console.log('📝 Point form submitted:', updatedPoint);
+
+    // Для существующих точек просто отправляем обновление
+    // Валидация уже выполнена в PointEditView
+    this.#handlePointChange(UserAction.UPDATE_POINT, updatedPoint);
     this.#closeForm();
   };
 
-  #handleDeleteClick = () => {
-    this.#closeForm();
+  #handleDeleteClick = (point) => {
+    console.log('🗑️ Deleting point:', point);
+    // Отправляем действие удаления
+    this.#handlePointChange(UserAction.DELETE_POINT, point || this.#point);
   };
 
   #handleFavoriteClick = () => {
-    this.#handlePointChange({
+    console.log('⭐ Toggling favorite for point:', this.#point.id);
+    const updatedPoint = {
       ...this.#point,
       isFavorite: !this.#point.isFavorite
-    });
+    };
+
+    this.#handlePointChange(UserAction.UPDATE_POINT, updatedPoint);
   };
 
   #handleEscKeyDown = (evt) => {
@@ -131,4 +142,15 @@ export default class PointPresenter {
       this.#closeForm();
     }
   };
+
+  // Метод для обновления точки в ответ на изменение модели
+  updatePoint(updatedPoint) {
+    if (this.#point.id !== updatedPoint.id) {
+      return;
+    }
+
+    console.log('🔄 Updating point in presenter:', updatedPoint);
+    this.#point = updatedPoint;
+    this.init(updatedPoint);
+  }
 }
