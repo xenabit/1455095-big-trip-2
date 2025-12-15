@@ -32,7 +32,7 @@ export default class NewPointPresenter {
       return;
     }
 
-    // СОЗДАЕМ ТОЧКУ С РЕАЛЬНЫМИ ЗНАЧЕНИЯМИ ПО УМОЛЧАНИЮ
+    // СОЗДАЕМ ПУСТУЮ ТОЧКУ БЕЗ DESTINATION
     const BLANK_POINT = this.#createBlankPoint();
 
     this.#pointEditComponent = new PointEditView(
@@ -51,10 +51,6 @@ export default class NewPointPresenter {
   }
 
   #createBlankPoint() {
-    // Берем первый существующий destination
-    const destinations = this.#destinationsModel.getDestinations();
-    const firstDestination = destinations.length > 0 ? destinations[0] : null;
-
     // Берем первый тип offers
     const offers = this.#offersModel.getOffers();
     const firstOfferType = offers.length > 0 ? offers[0].type : 'flight';
@@ -64,10 +60,10 @@ export default class NewPointPresenter {
 
     return {
       id: null,
-      basePrice: 100, // Начальная цена по умолчанию
+      basePrice: 0, // Начальная цена 0
       dateFrom: now.toISOString(),
       dateTo: oneHourLater.toISOString(),
-      destination: firstDestination ? firstDestination.id : null,
+      destination: null, // ВАЖНО: destination = null, а не первый элемент
       isFavorite: false,
       offers: [],
       type: firstOfferType,

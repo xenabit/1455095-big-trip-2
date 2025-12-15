@@ -1,4 +1,4 @@
-// /src/view/point-edit-view.js (исправленная версия)
+// /src/view/point-edit-view.js (исправляем обработку цены)
 import AbstractStatefulView from '/src/framework/view/abstract-stateful-view.js';
 import { typeIcons } from '/src/const.js';
 import {
@@ -30,6 +30,7 @@ export default class PointEditView extends AbstractStatefulView {
   #handleDelete = null;
   #dateFromPicker = null;
   #dateToPicker = null;
+  #isDestroyed = false;
 
   constructor(
     { pointData = BLANK_POINT, destinationsData, offersData },
@@ -53,7 +54,7 @@ export default class PointEditView extends AbstractStatefulView {
   }
 
   removeElement() {
-    super.removeElement();
+    this.#isDestroyed = true;
 
     if (this.#dateFromPicker) {
       this.#dateFromPicker.destroy();
@@ -64,42 +65,56 @@ export default class PointEditView extends AbstractStatefulView {
       this.#dateToPicker.destroy();
       this.#dateToPicker = null;
     }
+
+    super.removeElement();
   }
 
   setSaving() {
-    const saveButton = this.element.querySelector('.event__save-btn');
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const saveButton = this.element?.querySelector('.event__save-btn');
     if (saveButton) {
       saveButton.textContent = 'Saving...';
       saveButton.disabled = true;
     }
 
-    const resetButton = this.element.querySelector('.event__reset-btn');
+    const resetButton = this.element?.querySelector('.event__reset-btn');
     if (resetButton) {
       resetButton.disabled = true;
     }
   }
 
   setDeleting() {
-    const resetButton = this.element.querySelector('.event__reset-btn');
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const resetButton = this.element?.querySelector('.event__reset-btn');
     if (resetButton) {
       resetButton.textContent = 'Deleting...';
       resetButton.disabled = true;
     }
 
-    const saveButton = this.element.querySelector('.event__save-btn');
+    const saveButton = this.element?.querySelector('.event__save-btn');
     if (saveButton) {
       saveButton.disabled = true;
     }
   }
 
   resetButtons() {
-    const saveButton = this.element.querySelector('.event__save-btn');
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const saveButton = this.element?.querySelector('.event__save-btn');
     if (saveButton) {
       saveButton.textContent = 'Save';
       saveButton.disabled = false;
     }
 
-    const resetButton = this.element.querySelector('.event__reset-btn');
+    const resetButton = this.element?.querySelector('.event__reset-btn');
     if (resetButton) {
       resetButton.textContent = 'Delete';
       resetButton.disabled = false;
@@ -112,8 +127,12 @@ export default class PointEditView extends AbstractStatefulView {
   }
 
   #initDatePickers() {
-    const dateFromInput = this.element.querySelector('#event-start-time-1');
-    const dateToInput = this.element.querySelector('#event-end-time-1');
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const dateFromInput = this.element?.querySelector('#event-start-time-1');
+    const dateToInput = this.element?.querySelector('#event-end-time-1');
 
     if (!dateFromInput || !dateToInput) {
       return;
@@ -143,9 +162,7 @@ export default class PointEditView extends AbstractStatefulView {
       onChange: (selectedDates) => {
         if (selectedDates[0]) {
           const formattedDate = selectedDates[0].toISOString();
-          this.updateElement({
-            dateFrom: formattedDate,
-          });
+          this.#updateStateWithoutRerender({ dateFrom: formattedDate });
 
           if (this.#dateToPicker) {
             this.#dateToPicker.set('minDate', selectedDates[0]);
@@ -153,12 +170,9 @@ export default class PointEditView extends AbstractStatefulView {
         }
       },
       onClose: (selectedDates) => {
-        // Сохраняем значение при закрытии календаря
         if (selectedDates[0]) {
           const formattedDate = selectedDates[0].toISOString();
-          this.updateElement({
-            dateFrom: formattedDate,
-          });
+          this.#updateStateWithoutRerender({ dateFrom: formattedDate });
         }
       }
     });
@@ -170,24 +184,23 @@ export default class PointEditView extends AbstractStatefulView {
       onChange: (selectedDates) => {
         if (selectedDates[0]) {
           const formattedDate = selectedDates[0].toISOString();
-          this.updateElement({
-            dateTo: formattedDate,
-          });
+          this.#updateStateWithoutRerender({ dateTo: formattedDate });
         }
       },
       onClose: (selectedDates) => {
-        // Сохраняем значение при закрытии календаря
         if (selectedDates[0]) {
           const formattedDate = selectedDates[0].toISOString();
-          this.updateElement({
-            dateTo: formattedDate,
-          });
+          this.#updateStateWithoutRerender({ dateTo: formattedDate });
         }
       }
     });
   }
 
   #setEventListeners() {
+    if (this.#isDestroyed || !this.element) {
+      return;
+    }
+
     const formElement = this.element.querySelector('.event--edit');
     if (formElement) {
       formElement.addEventListener('submit', this.#formSubmitHandler);
@@ -199,12 +212,12 @@ export default class PointEditView extends AbstractStatefulView {
       input.addEventListener('change', this.#typeChangeHandler);
     });
 
-    // ОБРАБОТЧИК ДЛЯ DESTINATION - ТОЛЬКО ПРИ ВЫБОРЕ ИЗ СПИСКА
     const destinationInput = this.element.querySelector('.event__input--destination');
     if (destinationInput) {
-      // Используем input вместо blur, чтобы реагировать на выбор из datalist
       destinationInput.addEventListener('input', this.#destinationInputHandler);
       destinationInput.addEventListener('change', this.#destinationChangeHandler);
+      destinationInput.addEventListener('keydown', this.#destinationKeydownHandler);
+      destinationInput.addEventListener('blur', this.#destinationBlurHandler);
     }
 
     const offersCheckboxes = this.element.querySelectorAll('.event__offer-checkbox');
@@ -214,8 +227,11 @@ export default class PointEditView extends AbstractStatefulView {
 
     const priceInput = this.element.querySelector('.event__input--price');
     if (priceInput) {
-      priceInput.addEventListener('change', this.#priceChangeHandler);
+      // ОБНОВЛЯЕМ ТОЛЬКО СОСТОЯНИЕ, БЕЗ ПЕРЕРИСОВКИ
       priceInput.addEventListener('input', this.#priceInputHandler);
+      priceInput.addEventListener('change', this.#priceChangeHandler);
+      priceInput.addEventListener('keydown', this.#priceKeydownHandler);
+      priceInput.addEventListener('blur', this.#priceBlurHandler);
     }
 
     const rollupButton = this.element.querySelector('.event__rollup-btn');
@@ -226,10 +242,24 @@ export default class PointEditView extends AbstractStatefulView {
     this.#initDatePickers();
   }
 
+  // ОБНОВЛЯЕМ СОСТОЯНИЕ БЕЗ ПЕРЕРИСОВКИ ЭЛЕМЕНТА
+  #updateStateWithoutRerender(update) {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    if (!update) {
+      return;
+    }
+
+    this._setState(update);
+  }
+
   #typeChangeHandler = (evt) => {
     evt.preventDefault();
     const newType = evt.target.value;
 
+    // Для смены типа нужна перерисовка
     this.updateElement({
       type: newType,
       offers: [],
@@ -237,16 +267,19 @@ export default class PointEditView extends AbstractStatefulView {
     });
   };
 
-  // ОБРАБОТЧИК ВВОДА ТЕКСТА - ТОЛЬКО ДЛЯ ПОИСКА
   #destinationInputHandler = (evt) => {
+    if (this.#isDestroyed) {
+      return;
+    }
+
     const value = evt.target.value;
     const datalist = this.element.querySelector('#destination-list-1');
+
     if (!datalist) {
       return;
     }
 
     const options = Array.from(datalist.querySelectorAll('option'));
-
     options.forEach((option) => {
       if (option.value.toLowerCase().includes(value.toLowerCase())) {
         option.style.display = 'block';
@@ -256,35 +289,101 @@ export default class PointEditView extends AbstractStatefulView {
     });
   };
 
-  // ОБРАБОТЧИК ВЫБОРА ИЗ СПИСКА - СРАБАТЫВАЕТ ПРИ ВЫБОРЕ ИЗ DATALIST
   #destinationChangeHandler = (evt) => {
-    const destinationName = evt.target.value.trim();
-
-    if (!destinationName) {
-      this.updateElement({
-        destination: null,
-      });
+    if (this.#isDestroyed) {
       return;
     }
 
-    // Ищем точное совпадение
+    const destinationName = evt.target.value.trim();
+
+    if (!destinationName) {
+      this.#updateStateWithoutRerender({ destination: null });
+      return;
+    }
+
     const destination = this.#destinationsData.find((d) =>
       d.name.toLowerCase() === destinationName.toLowerCase()
     );
 
     if (destination) {
-      this.updateElement({
-        destination: destination.id,
-      });
+      this.#updateStateWithoutRerender({ destination: destination.id });
     } else {
-      // Если не нашли, destination остается null
-      this.updateElement({
-        destination: null,
-      });
+      this.#updateStateWithoutRerender({ destination: null });
     }
   };
 
+  #destinationKeydownHandler = (evt) => {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const allowedKeys = [
+      'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+      'Tab', 'Home', 'End'
+    ];
+
+    if (allowedKeys.includes(evt.key)) {
+      return;
+    }
+
+    if (!/^[a-zA-Zа-яА-ЯёЁ\s-]$/.test(evt.key)) {
+      evt.preventDefault();
+    }
+  };
+
+  #destinationBlurHandler = (evt) => {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const destinationInput = evt.target;
+    const destinationName = destinationInput.value.trim();
+
+    if (!destinationName) {
+      return;
+    }
+
+    const destinationExists = this.#destinationsData.some((d) =>
+      d.name.toLowerCase() === destinationName.toLowerCase()
+    );
+
+    if (!destinationExists) {
+      this.#showDestinationError(destinationInput, `"${destinationName}" не найден. Выберите из списка.`);
+      destinationInput.value = '';
+      this.#updateStateWithoutRerender({ destination: null });
+    }
+  };
+
+  #showDestinationError(input, message) {
+    if (this.#isDestroyed || !input.parentElement) {
+      return;
+    }
+
+    let errorElement = input.parentElement.querySelector('.destination-error');
+
+    if (!errorElement) {
+      errorElement = document.createElement('div');
+      errorElement.className = 'destination-error';
+      errorElement.style.color = '#ff6b6b';
+      errorElement.style.fontSize = '12px';
+      errorElement.style.marginTop = '4px';
+      input.parentElement.appendChild(errorElement);
+    }
+
+    errorElement.textContent = message;
+
+    setTimeout(() => {
+      if (errorElement && errorElement.parentElement) {
+        errorElement.remove();
+      }
+    }, 3000);
+  }
+
   #offerChangeHandler = (evt) => {
+    if (this.#isDestroyed) {
+      return;
+    }
+
     const offerId = evt.target.id;
     const isChecked = evt.target.checked;
     let updatedOffers = [...this._state.offers];
@@ -297,30 +396,134 @@ export default class PointEditView extends AbstractStatefulView {
       updatedOffers = updatedOffers.filter((id) => id !== offerId);
     }
 
-    this.updateElement({ offers: updatedOffers });
+    this.#updateStateWithoutRerender({ offers: updatedOffers });
+  };
+
+  // ИСПРАВЛЕННЫЙ ОБРАБОТЧИК ВВОДА ЦЕНЫ - БЕЗ ПЕРЕРИСОВКИ
+  #priceInputHandler = (evt) => {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const input = evt.target;
+    const value = input.value;
+
+    // Удаляем все нецифровые символы, кроме минуса в начале
+    const cleanedValue = value.replace(/[^\d-]/g, '');
+
+    // Удаляем минусы не в начале строки
+    let finalValue = cleanedValue.replace(/(?!^-)-/g, '');
+
+    // Ограничиваем одним минусом
+    if (finalValue.startsWith('--')) {
+      finalValue = finalValue.replace(/--+/g, '-');
+    }
+
+    // Если значение изменилось, обновляем поле
+    if (value !== finalValue) {
+      input.value = finalValue;
+    }
+
+    // Обновляем состояние без перерисовки
+    const numericValue = finalValue === '-' || finalValue === '' ? 0 : parseInt(finalValue, 10) || 0;
+    this.#updateStateWithoutRerender({ basePrice: numericValue });
   };
 
   #priceChangeHandler = (evt) => {
-    const value = evt.target.value;
-    const basePrice = parseInt(value, 10) || 0;
+    if (this.#isDestroyed) {
+      return;
+    }
 
-    if (basePrice >= 0) {
-      this.updateElement({ basePrice: basePrice });
+    const value = evt.target.value;
+    const basePrice = value === '' ? 0 : parseInt(value, 10) || 0;
+
+    this.#updateStateWithoutRerender({ basePrice: basePrice });
+  };
+
+  #priceKeydownHandler = (evt) => {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const allowedKeys = [
+      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+      '-',
+      'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight',
+      'ArrowUp', 'ArrowDown', 'Tab', 'Home', 'End'
+    ];
+
+    if (evt.ctrlKey && ['a', 'c', 'v', 'x'].includes(evt.key.toLowerCase())) {
+      return;
+    }
+
+    // Разрешаем минус только в начале строки
+    if (evt.key === '-' && evt.target.selectionStart !== 0) {
+      evt.preventDefault();
+      return;
+    }
+
+    if (!allowedKeys.includes(evt.key)) {
+      evt.preventDefault();
     }
   };
 
-  #priceInputHandler = (evt) => {
-    const value = evt.target.value;
-    if (!/^\d*$/.test(value)) {
-      evt.target.value = value.replace(/[^\d]/g, '');
+  #priceBlurHandler = (evt) => {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const input = evt.target;
+    const value = input.value;
+
+    // Если поле пустое или только минус, устанавливаем 0
+    if (!value || value === '' || value === '-') {
+      input.value = '0';
+      this.#updateStateWithoutRerender({ basePrice: 0 });
+      return;
+    }
+
+    const numericValue = parseInt(value, 10);
+
+    // Проверяем минимальное значение
+    if (numericValue < 0) {
+      input.value = '0';
+      this.#updateStateWithoutRerender({ basePrice: 0 });
+      this.#showPriceError(input, 'Цена не может быть отрицательной');
     }
   };
 
-  // /src/view/point-edit-view.js (исправляем обработчик submit)
+  #showPriceError(input, message) {
+    if (this.#isDestroyed || !input.parentElement) {
+      return;
+    }
+
+    let errorElement = input.parentElement.querySelector('.price-error');
+
+    if (!errorElement) {
+      errorElement = document.createElement('div');
+      errorElement.className = 'price-error';
+      errorElement.style.color = '#ff6b6b';
+      errorElement.style.fontSize = '12px';
+      errorElement.style.marginTop = '4px';
+      input.parentElement.appendChild(errorElement);
+    }
+
+    errorElement.textContent = message;
+
+    setTimeout(() => {
+      if (errorElement && errorElement.parentElement) {
+        errorElement.remove();
+      }
+    }, 3000);
+  }
+
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
 
-    // Делаем валидацию асинхронно, чтобы не блокировать UI
+    if (this.#isDestroyed) {
+      return;
+    }
+
     requestAnimationFrame(() => {
       if (!this.#validateForm()) {
         this.shake(() => {
@@ -329,7 +532,6 @@ export default class PointEditView extends AbstractStatefulView {
         return;
       }
 
-      // Собираем данные из формы
       const formData = this.#collectFormData();
 
       if (!formData) {
@@ -342,13 +544,15 @@ export default class PointEditView extends AbstractStatefulView {
     });
   };
 
-  // СОБИРАЕМ ДАННЫЕ ИЗ ФОРМЫ БЕЗОПАСНО
   #collectFormData() {
-    // Собираем данные с полей формы
+    if (this.#isDestroyed || !this.element) {
+      return null;
+    }
+
     const destinationInput = this.element.querySelector('.event__input--destination');
     const priceInput = this.element.querySelector('.event__input--price');
     const dateFromInput = this.element.querySelector('#event-start-time-1');
-    const dateToInput = this.element.querySelector('#event-end-time-2');
+    const dateToInput = this.element.querySelector('#event-end-time-1');
 
     if (!destinationInput || !priceInput) {
       console.error('Form fields not found');
@@ -358,22 +562,26 @@ export default class PointEditView extends AbstractStatefulView {
     const destinationName = destinationInput.value.trim();
     const priceValue = priceInput.value;
 
-    // Находим destination
     const destination = this.#destinationsData.find((d) =>
       d.name.toLowerCase() === destinationName.toLowerCase()
     );
 
     if (!destination) {
-      alert(`Destination "${destinationName}" not found. Please select from the list.`);
+      this.#showDestinationError(destinationInput, `"${destinationName}" не найден. Выберите из списка.`);
       destinationInput.focus();
       return null;
     }
 
-    // Безопасно парсим даты
+    const price = parseInt(priceValue, 10);
+    if (isNaN(price) || price < 0) {
+      this.#showPriceError(priceInput, 'Введите корректную цену (больше или равно 0)');
+      priceInput.focus();
+      return null;
+    }
+
     let dateFrom = this._state.dateFrom;
     let dateTo = this._state.dateTo;
 
-    // Если есть значения из flatpickr, используем их
     if (this.#dateFromPicker && this.#dateFromPicker.selectedDates[0]) {
       dateFrom = this.#dateFromPicker.selectedDates[0].toISOString();
     } else if (dateFromInput && dateFromInput.value) {
@@ -394,15 +602,14 @@ export default class PointEditView extends AbstractStatefulView {
       }
     }
 
-    // Проверяем корректность дат
     if (!dateFrom || !dateTo || new Date(dateTo) <= new Date(dateFrom)) {
-      alert('Please select valid dates. End date must be after start date.');
+      alert('Выберите корректные даты. Дата окончания должна быть позже даты начала.');
       return null;
     }
 
     return {
       id: this._state.id,
-      basePrice: Number(priceValue) || 0,
+      basePrice: price,
       dateFrom: dateFrom,
       dateTo: dateTo,
       destination: destination.id,
@@ -412,31 +619,33 @@ export default class PointEditView extends AbstractStatefulView {
     };
   }
 
-  // УПРОЩЕННАЯ ВАЛИДАЦИЯ ФОРМЫ
   #validateForm() {
+    if (this.#isDestroyed || !this.element) {
+      return false;
+    }
+
     const destinationInput = this.element.querySelector('.event__input--destination');
     const priceInput = this.element.querySelector('.event__input--price');
 
     if (!destinationInput || !destinationInput.value.trim()) {
-      alert('Please select a destination');
+      alert('Выберите пункт назначения из списка');
       destinationInput?.focus();
       return false;
     }
 
-    // Проверяем, что destination существует
     const destinationName = destinationInput.value.trim();
     const destinationExists = this.#destinationsData.some((d) =>
       d.name.toLowerCase() === destinationName.toLowerCase()
     );
 
     if (!destinationExists) {
-      alert(`Destination "${destinationName}" not found. Please select from the list.`);
+      alert(`"${destinationName}" не найден. Выберите пункт назначения из списка.`);
       destinationInput.focus();
       return false;
     }
 
-    if (!priceInput || !priceInput.value || parseInt(priceInput.value) <= 0) {
-      alert('Please enter a valid price (greater than 0)');
+    if (!priceInput || !priceInput.value || parseInt(priceInput.value) < 0) {
+      alert('Введите корректную цену (больше или равно 0)');
       priceInput?.focus();
       return false;
     }
@@ -551,12 +760,16 @@ export default class PointEditView extends AbstractStatefulView {
                      value="${destinationName}"
                      list="destination-list-1"
                      autocomplete="off"
-                     placeholder="Select destination...">
+                     placeholder="Выберите из списка..."
+                     required>
               <datalist id="destination-list-1">
                 ${this.#destinationsData.map((d) =>
     `<option value="${d.name}"></option>`
   ).join('')}
               </datalist>
+              <div class="destination-hint" style="font-size: 12px; color: #666; margin-top: 4px;">
+                Выберите из списка
+              </div>
             </div>
 
             <div class="event__field-group event__field-group--time">
@@ -568,9 +781,9 @@ export default class PointEditView extends AbstractStatefulView {
                      value="${getFormattedEditDateTime(dateFrom)}"
                      data-input>
               &mdash;
-              <label class="visually-hidden" for="event-end-time-2">To</label>
+              <label class="visually-hidden" for="event-end-time-1">To</label>
               <input class="event__input event__input--time flatpickr-input"
-                     id="event-end-time-2"
+                     id="event-end-time-1"
                      type="text"
                      name="event-end-time"
                      value="${getFormattedEditDateTime(dateTo)}"
@@ -587,10 +800,15 @@ export default class PointEditView extends AbstractStatefulView {
                      type="number"
                      name="event-price"
                      value="${basePrice}"
-                     min="1"
+                     min="0"
                      step="1"
+                     pattern="\d*"
+                     inputmode="numeric"
                      placeholder="0"
                      required>
+              <div class="price-hint" style="font-size: 12px; color: #666; margin-top: 4px;">
+                Только цифры
+              </div>
             </div>
 
             <button class="event__save-btn btn btn--blue" type="submit">Save</button>
