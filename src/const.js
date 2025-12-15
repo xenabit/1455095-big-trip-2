@@ -29,4 +29,12 @@ const UpdateType = {
   INIT: 'INIT' // Инициализация приложения
 };
 
-export { typeIcons, Mode, SortType, UpdateType };
+
+const FilterType = {
+  EVERYTHING: 'everything',
+  FUTURE: 'future',
+  PRESENT: 'present',
+  PAST: 'past'
+};
+
+export { typeIcons, Mode, SortType, UpdateType, FilterType };

@@ -40,6 +40,15 @@ export default class SortView extends AbstractView {
     this.element.addEventListener('click', this.#sortTypeChangeHandler);
   }
 
+  setSortType(sortType) {
+    const inputId = `sort-${sortType}`;
+    const radioElement = this.element.querySelector(`#${inputId}`);
+
+    if (radioElement && !radioElement.disabled) {
+      radioElement.checked = true;
+    }
+  }
+
   #sortTypeChangeHandler = (evt) => {
     if (evt.target.tagName !== 'LABEL' || !evt.target.dataset.sortType) {
       return;
