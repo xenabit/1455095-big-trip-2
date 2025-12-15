@@ -1,5 +1,4 @@
 import AbstractView from '../framework/view/abstract-view';
-
 import {
   getFormattedEventDay,
   getFormattedAttrEventDay,
@@ -7,7 +6,6 @@ import {
   getFormattedAttrDatatimeEvent,
   getTimeDuration,
 } from '../utils/utils.js';
-
 import { typeIcons } from '/src/const.js';
 
 function createLayout(pointData, destinationsData, offersData) {
@@ -21,6 +19,7 @@ function createLayout(pointData, destinationsData, offersData) {
     type,
   } = pointData;
 
+  // Используем dayjs для форматирования дат
   const eventDay = getFormattedEventDay(dateFrom);
   const eventTimeStart = getFormattedTimeEvent(dateFrom);
   const eventTimeEnd = getFormattedTimeEvent(dateTo);
@@ -127,7 +126,6 @@ export default class PointItemView extends AbstractView {
     const favoriteElement = this.element.querySelector('.event__favorite-btn');
     favoriteElement.addEventListener('click', this.#handleFavoriteClick);
   }
-
 
   get template() {
     return createLayout(
