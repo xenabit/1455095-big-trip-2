@@ -821,9 +821,6 @@ export default class PointEditView extends AbstractStatefulView {
     `<option value="${d.name}"></option>`
   ).join('')}
               </datalist>
-              <div class="destination-hint" style="font-size: 12px; color: #666; margin-top: 4px;">
-                Выберите из списка
-              </div>
             </div>
 
             <div class="event__field-group event__field-group--time">
@@ -860,9 +857,6 @@ export default class PointEditView extends AbstractStatefulView {
                      inputmode="numeric"
                      placeholder="0"
                      required>
-              <div class="price-hint" style="font-size: 12px; color: #666; margin-top: 4px;">
-                Только цифры
-              </div>
             </div>
 
             <button class="event__save-btn btn btn--blue" type="submit">Save</button>

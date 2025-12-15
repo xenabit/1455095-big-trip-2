@@ -2,7 +2,6 @@
 import PointsListView from '/src/view/points-list-view';
 import SortView from '/src/view/sort-view';
 import PointPresenter from './point-presenter.js';
-import NewEventButtonView from '../view/new-event-button-view.js';
 import NewPointPresenter from './new-point-presenter.js';
 import { render, remove } from '../framework/render.js';
 
@@ -25,6 +24,7 @@ export default class Presenter {
   #renderedPoints = [];
   #noPointComponent = null;
   #newPointPresenter = null;
+  #newEventButtonElement = null;
 
   constructor({
     pointsModel,
@@ -42,8 +42,8 @@ export default class Presenter {
   }
 
   init() {
-    // Инициализируем кнопку New Event
-    this.#initNewEventButton();
+    // Инициализируем кнопку New Event из существующей разметки
+    this.#initExistingNewEventButton();
 
     this.#sortComponent = new SortView({
       onSortTypeChange: this.#handleSortTypeChange
@@ -61,27 +61,27 @@ export default class Presenter {
     this.#renderAllPoints();
   }
 
-  #initNewEventButton() {
-    const tripMainElement = document.querySelector('.trip-main');
+  #initExistingNewEventButton() {
+    // Находим существующую кнопку в DOM
+    const newEventButton = document.querySelector('.trip-main__event-add-btn');
 
-    if (!tripMainElement) {
-      console.error('Could not find .trip-main container');
+    if (!newEventButton) {
+      console.error('Could not find .trip-main__event-add-btn in HTML');
       return;
     }
 
-    this.#newEventButtonComponent = new NewEventButtonView({
-      onClick: this.#handleNewEventButtonClick
-    });
+    console.log('✅ Found existing New Event button');
 
-    const tripControls = tripMainElement.querySelector('.trip-controls');
-    if (tripControls) {
-      tripControls.before(this.#newEventButtonComponent.element);
-    } else {
-      tripMainElement.append(this.#newEventButtonComponent.element);
-    }
+    // Сохраняем ссылку на кнопку
+    this.#newEventButtonElement = newEventButton;
+
+    // Добавляем обработчик
+    newEventButton.addEventListener('click', this.#handleNewEventButtonClick);
   }
 
   #handleNewEventButtonClick = () => {
+    console.log('🖱️ Existing New Event button clicked');
+
     // Сбрасываем фильтр на "Everything" при создании новой точки
     this.#filterModel.setFilter(UpdateType.MAJOR, FilterType.EVERYTHING);
 
@@ -115,9 +115,7 @@ export default class Presenter {
     this.#newPointPresenter.init();
 
     // Блокируем кнопку New Event
-    if (this.#newEventButtonComponent) {
-      this.#newEventButtonComponent.disable();
-    }
+    this.#disableNewEventButton();
   }
 
   #handleNewPointDestroy = () => {
@@ -125,10 +123,22 @@ export default class Presenter {
     this.#newPointPresenter = null;
 
     // Разблокируем кнопку New Event
-    if (this.#newEventButtonComponent) {
-      this.#newEventButtonComponent.enable();
-    }
+    this.#enableNewEventButton();
   };
+
+  #disableNewEventButton() {
+    if (this.#newEventButtonElement) {
+      this.#newEventButtonElement.disabled = true;
+      console.log('🔒 New Event button disabled');
+    }
+  }
+
+  #enableNewEventButton() {
+    if (this.#newEventButtonElement) {
+      this.#newEventButtonElement.disabled = false;
+      console.log('🔓 New Event button enabled');
+    }
+  }
 
   #handleViewAction = (actionType, payload) => {
     console.log(`🎯 View action: ${actionType}`, payload);
