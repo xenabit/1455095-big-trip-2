@@ -12,6 +12,12 @@ const destinationsModel = new DestinationsModel();
 const offersModel = new OffersModel();
 const filterModel = new FilterModel();
 
+// Проверяем, что данные загружены
+console.log('📍 Destinations:', destinationsModel.getDestinations());
+console.log('🎁 Offers:', offersModel.getOffers());
+console.log('📌 Points:', pointsModel.getPoints());
+
+
 // Инициализация презентеров
 const filterPresenter = new FilterPresenter({
   container: document.querySelector('.trip-controls__filters'),

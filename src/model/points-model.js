@@ -30,13 +30,16 @@ export default class PointsModel extends Observable {
   }
 
   addPoint(updateType, newPoint) {
+    console.log('📥 Model.addPoint called with:', newPoint);
+
     if (!newPoint) {
+      console.error('❌ Invalid point data: null');
       throw new Error('Invalid point data');
     }
 
-    // ПРИВОДИМ ДАННЫЕ К ПРАВИЛЬНОМУ ФОРМАТУ
+    // ВАЖНО: Правильный формат для точки
     const formattedPoint = {
-      id: Date.now(),
+      id: newPoint.id || Date.now(),
       base_price: Number(newPoint.basePrice) || 0,
       date_from: newPoint.dateFrom || new Date().toISOString(),
       date_to: newPoint.dateTo || new Date(Date.now() + 3600000).toISOString(),
@@ -46,11 +49,16 @@ export default class PointsModel extends Observable {
       type: newPoint.type || 'flight',
     };
 
-    // ВАЖНО: добавляем в начало массива для правильной сортировки
+    console.log('✅ Formatted point:', formattedPoint);
+
+    // Добавляем в начало массива для правильной сортировки
     this.#points = [formattedPoint, ...this.#points];
+
+    console.log('📊 Total points after addition:', this.#points.length);
 
     // Уведомляем с обновленными данными
     this._notify(updateType, formattedPoint);
+    console.log('🔔 Notified observers with type:', updateType);
   }
 
   deletePoint(updateType, pointId) {

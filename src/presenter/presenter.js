@@ -131,21 +131,28 @@ export default class Presenter {
   };
 
   #handleViewAction = (actionType, payload) => {
-    console.log(`View action: ${actionType}`, payload);
+    console.log(`🎯 View action: ${actionType}`, payload);
+    console.log(`📊 Payload type: ${typeof payload}`, payload?.constructor?.name);
+    console.log('🔍 Payload keys:', payload ? Object.keys(payload) : 'null');
 
     switch (actionType) {
       case UserAction.UPDATE_POINT:
+        console.log('🔄 Updating point:', payload);
         this.#pointsModel.updatePoint(UpdateType.MINOR, payload);
         break;
       case UserAction.ADD_POINT:
+        console.log('➕ Adding point:', payload);
         // Устанавливаем состояние "сохранение" для формы
         if (this.#newPointPresenter) {
+          console.log('💾 Setting saving state...');
           this.#newPointPresenter.setSaving();
         }
 
+        console.log('📤 Calling model.addPoint...');
         this.#pointsModel.addPoint(UpdateType.MINOR, payload);
         break;
       case UserAction.DELETE_POINT:
+        console.log('🗑️ Deleting point:', payload);
         this.#pointsModel.deletePoint(UpdateType.MINOR, payload.id || payload);
         break;
       default:

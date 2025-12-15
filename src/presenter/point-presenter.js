@@ -110,18 +110,24 @@ export default class PointPresenter {
     }
   };
 
+  // ВАЖНО: Этот метод должен быть простым - только отправляет обновление
   #handleFormSubmit = (updatedPoint) => {
-    // Отправляем обновление с указанием типа действия
+    console.log('📝 Point form submitted:', updatedPoint);
+
+    // Для существующих точек просто отправляем обновление
+    // Валидация уже выполнена в PointEditView
     this.#handlePointChange(UserAction.UPDATE_POINT, updatedPoint);
     this.#closeForm();
   };
 
   #handleDeleteClick = (point) => {
+    console.log('🗑️ Deleting point:', point);
     // Отправляем действие удаления
     this.#handlePointChange(UserAction.DELETE_POINT, point || this.#point);
   };
 
   #handleFavoriteClick = () => {
+    console.log('⭐ Toggling favorite for point:', this.#point.id);
     const updatedPoint = {
       ...this.#point,
       isFavorite: !this.#point.isFavorite
@@ -143,6 +149,7 @@ export default class PointPresenter {
       return;
     }
 
+    console.log('🔄 Updating point in presenter:', updatedPoint);
     this.#point = updatedPoint;
     this.init(updatedPoint);
   }

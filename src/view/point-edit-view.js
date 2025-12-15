@@ -622,16 +622,15 @@ export default class PointEditView extends AbstractStatefulView {
     };
   }
 
-  // /src/view/point-edit-view.js (упрощаем валидацию)
   #validateForm() {
-    if (this.#isDestroyed || !this.element) {
+    if (!this.element) {
       return false;
     }
 
     const destinationInput = this.element.querySelector('.event__input--destination');
     const priceInput = this.element.querySelector('.event__input--price');
 
-    // БЫСТРАЯ ПРОВЕРКА ПУСТЫХ ПОЛЕЙ
+    // Базовые проверки
     if (!destinationInput || !destinationInput.value.trim()) {
       this.#showQuickError('Выберите пункт назначения из списка');
       destinationInput?.focus();
@@ -639,15 +638,9 @@ export default class PointEditView extends AbstractStatefulView {
     }
 
     const destinationName = destinationInput.value.trim();
-
-    // БЫСТРЫЙ ПОИСК (кешируем lowercase имена)
-    const destinationExists = this.#destinationsData.some((d) => {
-      // Используем кеширование для быстрого поиска
-      if (!d._lowerName) {
-        d._lowerName = d.name.toLowerCase();
-      }
-      return d._lowerName === destinationName.toLowerCase();
-    });
+    const destinationExists = this.#destinationsData.some((d) =>
+      d.name.toLowerCase() === destinationName.toLowerCase()
+    );
 
     if (!destinationExists) {
       this.#showQuickError(`"${destinationName}" не найден. Выберите из списка.`);
@@ -655,16 +648,16 @@ export default class PointEditView extends AbstractStatefulView {
       return false;
     }
 
-    // БЫСТРАЯ ПРОВЕРКА ЦЕНЫ
-    if (!priceInput || !priceInput.value) {
-      this.#showQuickError('Введите цену');
+    // Проверка цены
+    if (!priceInput || !priceInput.value || priceInput.value === '0') {
+      this.#showQuickError('Введите цену больше 0');
       priceInput?.focus();
       return false;
     }
 
     const price = parseInt(priceInput.value, 10);
-    if (isNaN(price) || price < 0) {
-      this.#showQuickError('Введите корректную цену (больше или равно 0)');
+    if (isNaN(price) || price <= 0) {
+      this.#showQuickError('Цена должна быть числом больше 0');
       priceInput.focus();
       return false;
     }
@@ -793,7 +786,7 @@ export default class PointEditView extends AbstractStatefulView {
 
     return `
       <li class="trip-events__item">
-        <form class="event event--edit" action="#" method="post onsubmit="return false;">
+        <form class="event event--edit" action="#" method="post" onsubmit="return false;">
           <header class="event__header">
             <div class="event__type-wrapper">
               <label class="event__type event__type-btn" for="event-type-toggle-1">

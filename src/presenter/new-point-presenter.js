@@ -32,7 +32,7 @@ export default class NewPointPresenter {
       return;
     }
 
-    // СОЗДАЕМ ПУСТУЮ ТОЧКУ БЕЗ DESTINATION
+    // СОЗДАЕМ ПУСТУЮ ТОЧКУ С ПЕРВЫМ НАПРАВЛЕНИЕМ ИЗ СПИСКА
     const BLANK_POINT = this.#createBlankPoint();
 
     this.#pointEditComponent = new PointEditView(
@@ -51,19 +51,22 @@ export default class NewPointPresenter {
   }
 
   #createBlankPoint() {
-    // Берем первый тип offers
+    const destinations = this.#destinationsModel.getDestinations();
     const offers = this.#offersModel.getOffers();
+
+    // Берем первое направление и первый тип offers
+    const firstDestination = destinations.length > 0 ? destinations[0].id : null;
     const firstOfferType = offers.length > 0 ? offers[0].type : 'flight';
 
     const now = new Date();
     const oneHourLater = new Date(now.getTime() + 3600000);
 
     return {
-      id: null,
-      basePrice: 0, // Начальная цена 0
+      id: null, // Будет сгенерирован в модели
+      basePrice: 100, // Начальная цена не 0
       dateFrom: now.toISOString(),
       dateTo: oneHourLater.toISOString(),
-      destination: null, // ВАЖНО: destination = null, а не первый элемент
+      destination: firstDestination, // Ставим первое направление
       isFavorite: false,
       offers: [],
       type: firstOfferType,
@@ -89,19 +92,7 @@ export default class NewPointPresenter {
       return;
     }
 
-    const saveButton = this.#pointEditComponent.element.querySelector('.event__save-btn');
-    if (saveButton) {
-      saveButton.textContent = 'Saving...';
-      saveButton.disabled = true;
-    }
-
-    // Также блокируем все инпуты
-    const inputs = this.#pointEditComponent.element.querySelectorAll('input, button');
-    inputs.forEach((input) => {
-      if (input !== saveButton) {
-        input.disabled = true;
-      }
-    });
+    this.#pointEditComponent.setSaving();
   }
 
   setAborting() {
@@ -109,43 +100,47 @@ export default class NewPointPresenter {
       return;
     }
 
-    const resetFormState = () => {
-      if (this.#pointEditComponent) {
-        const saveButton = this.#pointEditComponent.element.querySelector('.event__save-btn');
-        if (saveButton) {
-          saveButton.textContent = 'Save';
-          saveButton.disabled = false;
-        }
-
-        // Разблокируем все инпуты
-        const inputs = this.#pointEditComponent.element.querySelectorAll('input, button');
-        inputs.forEach((input) => {
-          input.disabled = false;
-        });
-      }
-    };
-
-    this.#pointEditComponent.shake(resetFormState);
+    this.#pointEditComponent.setAborting();
   }
 
   #handleFormSubmit = (point) => {
-    // ПРОВЕРЯЕМ, ЧТО ВСЕ ОБЯЗАТЕЛЬНЫЕ ПОЛЯ ЗАПОЛНЕНЫ
+    // ПРОВЕРКА ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
     if (!this.#validatePoint(point)) {
-      alert('Please fill in all required fields: destination and price');
-      this.setAborting();
+      alert('Please fill in all required fields: destination and price (must be positive)');
+      this.#pointEditComponent.setAborting();
       return;
     }
 
-    this.#handleDataChange(UserAction.ADD_POINT, point);
+    // Форматируем данные для передачи в модель
+    const pointToSend = {
+      id: null, // Модель сама сгенерирует ID
+      basePrice: Number(point.basePrice),
+      dateFrom: point.dateFrom,
+      dateTo: point.dateTo,
+      destination: point.destination,
+      isFavorite: point.isFavorite || false,
+      offers: point.offers || [],
+      type: point.type || 'flight',
+    };
+
+    this.#handleDataChange(UserAction.ADD_POINT, pointToSend);
   };
 
   #validatePoint(point) {
     // Проверяем обязательные поля
-    if (!point.destination || point.destination === null) {
+    if (!point.destination) {
       return false;
     }
 
-    if (point.basePrice === undefined || point.basePrice === null || point.basePrice < 0) {
+    const price = Number(point.basePrice);
+    if (isNaN(price) || price < 0) {
+      return false;
+    }
+
+    // Проверяем даты
+    const dateFrom = new Date(point.dateFrom);
+    const dateTo = new Date(point.dateTo);
+    if (dateTo <= dateFrom) {
       return false;
     }
 
