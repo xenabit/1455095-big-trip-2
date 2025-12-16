@@ -73,21 +73,23 @@ export default class PointEditView extends AbstractStatefulView {
     }
 
     const saveButton = this.element?.querySelector('.event__save-btn');
+    const resetButton = this.element?.querySelector('.event__reset-btn');
+    const rollupButton = this.element?.querySelector('.event__rollup-btn');
+
     if (saveButton) {
       saveButton.textContent = 'Saving...';
       saveButton.disabled = true;
     }
 
-    const resetButton = this.element?.querySelector('.event__reset-btn');
     if (resetButton) {
       resetButton.disabled = true;
     }
 
-    const rollupButton = this.element?.querySelector('.event__rollup-btn');
     if (rollupButton) {
       rollupButton.disabled = true;
     }
   }
+
 
   setDeleting() {
     if (this.#isDestroyed) {
@@ -95,17 +97,18 @@ export default class PointEditView extends AbstractStatefulView {
     }
 
     const resetButton = this.element?.querySelector('.event__reset-btn');
+    const saveButton = this.element?.querySelector('.event__save-btn');
+    const rollupButton = this.element?.querySelector('.event__rollup-btn');
+
     if (resetButton) {
       resetButton.textContent = 'Deleting...';
       resetButton.disabled = true;
     }
 
-    const saveButton = this.element?.querySelector('.event__save-btn');
     if (saveButton) {
       saveButton.disabled = true;
     }
 
-    const rollupButton = this.element?.querySelector('.event__rollup-btn');
     if (rollupButton) {
       rollupButton.disabled = true;
     }
@@ -117,24 +120,24 @@ export default class PointEditView extends AbstractStatefulView {
     }
 
     const saveButton = this.element?.querySelector('.event__save-btn');
+    const resetButton = this.element?.querySelector('.event__reset-btn');
+    const rollupButton = this.element?.querySelector('.event__rollup-btn');
+
     if (saveButton) {
       saveButton.textContent = 'Save';
       saveButton.disabled = false;
     }
 
-    const resetButton = this.element?.querySelector('.event__reset-btn');
     if (resetButton) {
       resetButton.textContent = 'Delete';
       resetButton.disabled = false;
     }
 
-    const rollupButton = this.element?.querySelector('.event__rollup-btn');
     if (rollupButton) {
       rollupButton.disabled = false;
     }
 
-    this.shake(() => {
-    });
+    this.shake(() => {});
   }
 
   resetButtons() {
@@ -143,15 +146,21 @@ export default class PointEditView extends AbstractStatefulView {
     }
 
     const saveButton = this.element?.querySelector('.event__save-btn');
+    const resetButton = this.element?.querySelector('.event__reset-btn');
+    const rollupButton = this.element?.querySelector('.event__rollup-btn');
+
     if (saveButton) {
       saveButton.textContent = 'Save';
       saveButton.disabled = false;
     }
 
-    const resetButton = this.element?.querySelector('.event__reset-btn');
     if (resetButton) {
       resetButton.textContent = 'Delete';
       resetButton.disabled = false;
+    }
+
+    if (rollupButton) {
+      rollupButton.disabled = false;
     }
   }
 

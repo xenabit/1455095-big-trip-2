@@ -163,41 +163,86 @@ export default class NewPointPresenter {
 
   #validatePoint(point) {
     if (!point.destination) {
+      this.#showValidationError('Please select a destination');
       return false;
     }
 
     if (!point.type) {
+      this.#showValidationError('Please select an event type');
       return false;
     }
 
     const price = Number(point.basePrice);
     if (isNaN(price) || price <= 0) {
+      this.#showValidationError('Price must be a number greater than 0');
       return false;
     }
 
     const dateFrom = new Date(point.dateFrom);
     const dateTo = new Date(point.dateTo);
+
+    if (isNaN(dateFrom.getTime()) || isNaN(dateTo.getTime())) {
+      this.#showValidationError('Please select valid dates');
+      return false;
+    }
+
     if (dateTo <= dateFrom) {
+      this.#showValidationError('End date must be after start date');
       return false;
     }
 
     return true;
   }
 
-  setSaving() {
-    if (!this.#pointEditComponent) {
-      return;
-    }
+  #showValidationError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.textContent = message;
+    errorDiv.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #ff6b6b;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 4px;
+    z-index: 10000;
+    animation: fadeInOut 3s ease;
+  `;
 
-    this.#pointEditComponent.setSaving();
+    const style = document.createElement('style');
+    style.textContent = `
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      10% { opacity: 1; transform: translateY(0); }
+      90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+  `;
+
+    document.head.appendChild(style);
+    document.body.appendChild(errorDiv);
+
+    setTimeout(() => {
+      if (errorDiv.parentElement) {
+        errorDiv.remove();
+      }
+      if (style.parentElement) {
+        style.remove();
+      }
+    }, 3000);
+  }
+
+  // В NewPointPresenter добавьте:
+  setSaving() {
+    if (this.#pointEditComponent) {
+      this.#pointEditComponent.setSaving();
+    }
   }
 
   setAborting() {
-    if (!this.#pointEditComponent) {
-      return;
+    if (this.#pointEditComponent) {
+      this.#pointEditComponent.setAborting();
     }
-
-    this.#pointEditComponent.setAborting();
   }
 
 
