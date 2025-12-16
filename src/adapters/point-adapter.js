@@ -1,43 +1,31 @@
-// /src/adapters/point-adapter.js
-
 export default class PointAdapter {
-  /**
-   * Адаптирует данные с сервера к формату приложения
-   */
-  static adaptToClient(point) {
-    const adaptedPoint = {
-      id: point.id,
-      basePrice: point.base_price,
-      dateFrom: point.date_from,
-      dateTo: point.date_to,
-      destination: point.destination,
-      isFavorite: point.is_favorite,
-      offers: point.offers || [],
-      type: point.type,
+  static adaptToClient(serverPoint) {
+    return {
+      id: serverPoint.id,
+      basePrice: serverPoint.base_price,
+      dateFrom: serverPoint.date_from,
+      dateTo: serverPoint.date_to,
+      destination: serverPoint.destination,
+      isFavorite: serverPoint.is_favorite,
+      offers: serverPoint.offers || [],
+      type: serverPoint.type,
     };
-
-    return adaptedPoint;
   }
 
-  /**
-   * Адаптирует данные приложения к формату сервера
-   */
-  static adaptToServer(point) {
-    if (!point) {
-      return null;
-    }
+  static adaptToServer(clientPoint) {
 
-    const adaptedPoint = {
-      'id': point.id,
-      'base_price': Number(point.basePrice) || 0,
-      'date_from': point.dateFrom,
-      'date_to': point.dateTo,
-      'destination': point.destination,
-      'is_favorite': Boolean(point.isFavorite),
-      'offers': Array.isArray(point.offers) ? point.offers : [],
-      'type': point.type || 'flight',
+    const serverPoint = {
+      id: clientPoint.id,
+      base_price: Number(clientPoint.basePrice) || 0, // eslint-disable-line camelcase
+      date_from: clientPoint.dateFrom, // eslint-disable-line camelcase
+      date_to: clientPoint.dateTo, // eslint-disable-line camelcase
+      destination: clientPoint.destination,
+      is_favorite: Boolean(clientPoint.isFavorite), // eslint-disable-line camelcase
+      offers: clientPoint.offers || [],
+      type: clientPoint.type || 'flight',
     };
 
-    return adaptedPoint;
+
+    return serverPoint;
   }
 }

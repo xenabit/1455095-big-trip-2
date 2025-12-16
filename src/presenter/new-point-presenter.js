@@ -1,13 +1,13 @@
-// /src/presenter/new-point-presenter.js
 import PointEditView from '../view/point-edit-view.js';
 import { render, remove } from '../framework/render.js';
-import { UserAction } from '../const.js';
+import { UserAction, UpdateType } from '../const.js';
 import { isEscEvent } from '../utils/utils.js';
 
 export default class NewPointPresenter {
   #container = null;
   #destinationsModel = null;
   #offersModel = null;
+  #pointsModel = null;
   #handleDataChange = null;
   #handleDestroy = null;
 
@@ -17,14 +17,20 @@ export default class NewPointPresenter {
     container,
     destinationsModel,
     offersModel,
+    pointsModel,
     onDataChange,
     onDestroy
   }) {
     this.#container = container;
     this.#destinationsModel = destinationsModel;
     this.#offersModel = offersModel;
+    this.#pointsModel = pointsModel;
     this.#handleDataChange = onDataChange;
     this.#handleDestroy = onDestroy;
+
+    if (this.#pointsModel) {
+      this.#pointsModel.addObserver(this.#handleModelEvent);
+    }
   }
 
   init() {
@@ -32,7 +38,6 @@ export default class NewPointPresenter {
       return;
     }
 
-    // СОЗДАЕМ ПУСТУЮ ТОЧКУ С ПЕРВЫМ НАПРАВЛЕНИЕМ ИЗ СПИСКА
     const BLANK_POINT = this.#createBlankPoint();
 
     this.#pointEditComponent = new PointEditView(
@@ -50,33 +55,78 @@ export default class NewPointPresenter {
     document.addEventListener('keydown', this.#escKeyDownHandler);
   }
 
+
+  #handleModelEvent = (updateType, payload) => {
+
+    if (updateType === UpdateType.MAJOR || updateType === UpdateType.MINOR) {
+
+      setTimeout(() => {
+        if (this.#pointEditComponent) {
+          this.destroy();
+        }
+      }, 500);
+    }
+
+    if (updateType === UpdateType.INIT && payload?.error) {
+      this.setAborting();
+    }
+  };
+
   #createBlankPoint() {
     const destinations = this.#destinationsModel.getDestinations();
-    const offers = this.#offersModel.getOffers();
-
-    // Берем первое направление и первый тип offers
     const firstDestination = destinations.length > 0 ? destinations[0].id : null;
-    const firstOfferType = offers.length > 0 ? offers[0].type : 'flight';
-
+    const defaultType = 'flight';
     const now = new Date();
-    const oneHourLater = new Date(now.getTime() + 3600000);
+    const twoHoursLater = new Date(now.getTime() + 7200000);
 
     return {
-      id: null, // Будет сгенерирован в модели
-      basePrice: 100, // Начальная цена не 0
+      id: null,
+      basePrice: 100,
       dateFrom: now.toISOString(),
-      dateTo: oneHourLater.toISOString(),
-      destination: firstDestination, // Ставим первое направление
+      dateTo: twoHoursLater.toISOString(),
+      destination: firstDestination,
       isFavorite: false,
       offers: [],
-      type: firstOfferType,
+      type: defaultType,
     };
   }
 
+  #handleFormSubmit = async (point) => {
+    if (!this.#validatePoint(point)) {
+      this.setAborting();
+      return;
+    }
+
+    this.setSaving();
+
+    try {
+      const pointToSend = {
+        basePrice: Number(point.basePrice) || 100,
+        dateFrom: point.dateFrom,
+        dateTo: point.dateTo,
+        destination: point.destination,
+        isFavorite: point.isFavorite !== undefined ? point.isFavorite : false,
+        offers: point.offers || [],
+        type: point.type || 'flight',
+      };
+      await this.#handleDataChange(UserAction.ADD_POINT, pointToSend);
+    } catch (error) {
+      this.setAborting();
+
+
+    }
+  };
+
   destroy() {
+    if (this.#pointsModel) {
+      this.#pointsModel.removeObserver(this.#handleModelEvent);
+    }
+
     if (!this.#pointEditComponent) {
       return;
     }
+
+    this.resetButtons();
 
     document.removeEventListener('keydown', this.#escKeyDownHandler);
     remove(this.#pointEditComponent);
@@ -87,70 +137,114 @@ export default class NewPointPresenter {
     }
   }
 
-  setSaving() {
+  resetButtons() {
     if (!this.#pointEditComponent) {
       return;
     }
 
-    this.#pointEditComponent.setSaving();
+    const saveButton = this.#pointEditComponent.element?.querySelector('.event__save-btn');
+    const resetButton = this.#pointEditComponent.element?.querySelector('.event__reset-btn');
+    const rollupButton = this.#pointEditComponent.element?.querySelector('.event__rollup-btn');
+
+    if (saveButton) {
+      saveButton.textContent = 'Save';
+      saveButton.disabled = false;
+    }
+
+    if (resetButton) {
+      resetButton.textContent = 'Delete';
+      resetButton.disabled = false;
+    }
+
+    if (rollupButton) {
+      rollupButton.disabled = false;
+    }
   }
-
-  setAborting() {
-    if (!this.#pointEditComponent) {
-      return;
-    }
-
-    this.#pointEditComponent.setAborting();
-  }
-
-  #handleFormSubmit = async (point) => {
-    // ПРОВЕРКА ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
-    if (!this.#validatePoint(point)) {
-      alert('Please fill in all required fields: destination and price (must be positive)');
-      this.#pointEditComponent.setAborting();
-      return;
-    }
-
-    // Форматируем данные для передачи в модель
-    const pointToSend = {
-      id: null, // Модель сама сгенерирует ID
-      basePrice: Number(point.basePrice),
-      dateFrom: point.dateFrom,
-      dateTo: point.dateTo,
-      destination: point.destination,
-      isFavorite: point.isFavorite || false,
-      offers: point.offers || [],
-      type: point.type || 'flight',
-    };
-
-    try {
-      await this.#handleDataChange(UserAction.ADD_POINT, pointToSend);
-    } catch (error) {
-      console.error('❌ Failed to add point:', error);
-      this.setAborting();
-    }
-  };
 
   #validatePoint(point) {
-    // Проверяем обязательные поля
     if (!point.destination) {
+      this.#showValidationError('Please select a destination');
+      return false;
+    }
+
+    if (!point.type) {
+      this.#showValidationError('Please select an event type');
       return false;
     }
 
     const price = Number(point.basePrice);
-    if (isNaN(price) || price < 0) {
+    if (isNaN(price) || price <= 0) {
+      this.#showValidationError('Price must be a number greater than 0');
       return false;
     }
 
-    // Проверяем даты
     const dateFrom = new Date(point.dateFrom);
     const dateTo = new Date(point.dateTo);
+
+    if (isNaN(dateFrom.getTime()) || isNaN(dateTo.getTime())) {
+      this.#showValidationError('Please select valid dates');
+      return false;
+    }
+
     if (dateTo <= dateFrom) {
+      this.#showValidationError('End date must be after start date');
       return false;
     }
 
     return true;
   }
+
+  #showValidationError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.textContent = message;
+    errorDiv.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #ff6b6b;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 4px;
+    z-index: 10000;
+    animation: fadeInOut 3s ease;
+  `;
+
+    const style = document.createElement('style');
+    style.textContent = `
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      10% { opacity: 1; transform: translateY(0); }
+      90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+  `;
+
+    document.head.appendChild(style);
+    document.body.appendChild(errorDiv);
+
+    setTimeout(() => {
+      if (errorDiv.parentElement) {
+        errorDiv.remove();
+      }
+      if (style.parentElement) {
+        style.remove();
+      }
+    }, 3000);
+  }
+
+  // В NewPointPresenter добавьте:
+  setSaving() {
+    if (this.#pointEditComponent) {
+      this.#pointEditComponent.setSaving();
+    }
+  }
+
+  setAborting() {
+    if (this.#pointEditComponent) {
+      this.#pointEditComponent.setAborting();
+    }
+  }
+
 
   #handleDeleteClick = () => {
     this.destroy();

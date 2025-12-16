@@ -1,4 +1,3 @@
-// /src/utils/utils.js (исправляем parseFlatpickrDate)
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 
@@ -18,16 +17,13 @@ const FLATPICKR_DATE_FORMAT = 'd/m/y H:i';
 
 function getFormattedEventDay(date) {
   if (!date) {
-    console.warn('⚠️ Empty date passed to getFormattedEventDay');
     return '';
   }
 
   try {
     const formatted = dayjs(date).format(EVENT_DAY_FORMAT);
-    console.log('📅 Formatted event day:', date, '->', formatted);
     return formatted;
   } catch (error) {
-    console.error('❌ Error formatting event day:', error, 'date:', date);
     return '';
   }
 }
@@ -83,30 +79,25 @@ function getTimeDuration(startDate, endDate) {
   return parts.join(' ');
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ ПАРСИНГА ДАТЫ
 function parseFlatpickrDate(flatpickrDate) {
   if (!flatpickrDate) {
     return new Date().toISOString();
   }
 
   try {
-    // Пытаемся распарсить дату в формате DD/MM/YY HH:mm
     const parsedDate = dayjs(flatpickrDate, EDIT_DATE_TIME_FORMAT);
 
     if (parsedDate.isValid()) {
       return parsedDate.toISOString();
     }
 
-    // Если не удалось, пробуем стандартный парсинг
     const fallbackDate = new Date(flatpickrDate);
     if (!isNaN(fallbackDate.getTime())) {
       return fallbackDate.toISOString();
     }
 
-    // Если ничего не работает, возвращаем текущую дату
     return new Date().toISOString();
   } catch (error) {
-    console.error('Error parsing date:', error, 'Input:', flatpickrDate);
     return new Date().toISOString();
   }
 }

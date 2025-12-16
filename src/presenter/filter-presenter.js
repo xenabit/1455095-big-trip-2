@@ -1,8 +1,7 @@
-// /src/presenter/filter-presenter.js
-
 import FilterView from '../view/filter-view.js';
 import { FilterType, UpdateType } from '../const.js';
 import { render, replace, remove } from '../framework/render.js';
+import { DataAdapter } from '../utils/data-adapter.js';
 
 export default class FilterPresenter {
   #container = null;
@@ -16,7 +15,6 @@ export default class FilterPresenter {
     this.#filterModel = filterModel;
     this.#pointsModel = pointsModel;
 
-    // Подписываемся на изменения в моделях
     this.#filterModel.addObserver(this.#handleModelEvent);
     this.#pointsModel.addObserver(this.#handleModelEvent);
   }
@@ -49,36 +47,38 @@ export default class FilterPresenter {
       return;
     }
 
-    // При смене фильтра сбрасываем сортировку на DAY
     this.#filterModel.setFilter(UpdateType.MAJOR, filterType);
   };
+
 
   #getFilters() {
     const points = this.#pointsModel.getPoints();
     const now = new Date();
 
+    const normalizedPoints = points.map((point) => DataAdapter.forSorting(point));
+
     return [
       {
         type: FilterType.EVERYTHING,
         name: 'Everything',
-        count: points.length
+        count: normalizedPoints.length
       },
       {
         type: FilterType.FUTURE,
         name: 'Future',
-        count: points.filter((point) => new Date(point.date_from) > now).length
+        count: normalizedPoints.filter((point) => new Date(point.dateFrom) > now).length
       },
       {
         type: FilterType.PRESENT,
         name: 'Present',
-        count: points.filter((point) =>
-          new Date(point.date_from) <= now && new Date(point.date_to) >= now
+        count: normalizedPoints.filter((point) =>
+          new Date(point.dateFrom) <= now && new Date(point.dateTo) >= now
         ).length
       },
       {
         type: FilterType.PAST,
         name: 'Past',
-        count: points.filter((point) => new Date(point.date_to) < now).length
+        count: normalizedPoints.filter((point) => new Date(point.dateTo) < now).length
       }
     ];
   }

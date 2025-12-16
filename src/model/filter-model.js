@@ -1,5 +1,3 @@
-// /src/model/filter-model.js
-
 import Observable from '../framework/observable.js';
 
 const FilterType = {

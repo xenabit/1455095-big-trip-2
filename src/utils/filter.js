@@ -1,39 +1,60 @@
-// /src/utils/filter.js
-
 import dayjs from 'dayjs';
 import { FilterType } from '../const.js';
+import { DataAdapter } from './data-adapter.js';
 
-export const filter = {
-  [FilterType.EVERYTHING]: (points) => points,
+const normalizePoints = (points) => {
+  if (!points) {
+    return [];
+  }
+  return points.map((point) => DataAdapter.forSorting(point));
+};
 
-  [FilterType.FUTURE]: (points) => {
-    const now = dayjs();
-    return points.filter((point) =>
-      dayjs(point.date_from).isAfter(now) ||
-      dayjs(point.date_from).isSame(now, 'day')
-    );
-  },
+const isFuturePoint = (point, now) => dayjs(point.dateFrom).isAfter(now);
 
-  [FilterType.PRESENT]: (points) => {
-    const now = dayjs();
-    return points.filter((point) =>
-      dayjs(point.date_from).isSame(now, 'day') ||
-      (dayjs(point.date_from).isBefore(now) && dayjs(point.date_to).isAfter(now))
-    );
-  },
+const isPresentPoint = (point, now) => {
+  const dateFrom = dayjs(point.dateFrom);
+  const dateTo = dayjs(point.dateTo);
+  const nowDayjs = dayjs(now);
 
-  [FilterType.PAST]: (points) => {
-    const now = dayjs();
-    return points.filter((point) => dayjs(point.date_to).isBefore(now));
+  return (dateFrom.isSame(nowDayjs, 'day') && dateTo.isSame(nowDayjs, 'day')) ||
+    (dateFrom.isBefore(nowDayjs) && dateTo.isAfter(nowDayjs));
+};
+
+const isPastPoint = (point, now) => dayjs(point.dateTo).isBefore(now);
+
+export const filterPoints = (points, filterType) => {
+  if (!Array.isArray(points)) {
+    return [];
+  }
+
+  if (points.length === 0) {
+    return [];
+  }
+
+  const normalizedPoints = normalizePoints(points);
+  const now = dayjs();
+
+  switch (filterType) {
+    case FilterType.EVERYTHING:
+      return normalizedPoints;
+
+    case FilterType.FUTURE:
+      return normalizedPoints.filter((point) => isFuturePoint(point, now));
+
+    case FilterType.PRESENT:
+      return normalizedPoints.filter((point) => isPresentPoint(point, now));
+
+    case FilterType.PAST:
+      return normalizedPoints.filter((point) => isPastPoint(point, now));
+
+    default:
+      return normalizedPoints;
   }
 };
 
-export const filterPoints = (points, filterType) => {
-  const filterFunction = filter[filterType];
+export const debugFilter = (points, filterType) => {
 
-  if (!filterFunction) {
-    throw new Error(`Filter type "${filterType}" is not supported`);
-  }
+  const filtered = filterPoints(points, filterType);
 
-  return filterFunction(points);
+  return filtered;
 };

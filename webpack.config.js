@@ -16,7 +16,7 @@ module.exports = {
       directory: path.resolve(__dirname, 'build'),
     },
     compress: true,
-    port: 9000,
+    port: 8080,
     hot: true,  // Включает горячую перезагрузку (HMR)
     open: true, // Открывает браузер при запуске сервера
   },

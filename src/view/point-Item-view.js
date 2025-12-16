@@ -1,6 +1,4 @@
-// /src/view/point-item-view.js
-
-import AbstractView from '../framework/view/abstract-view';
+import AbstractView from '../framework/view/abstract-view.js';
 import {
   getFormattedEventDay,
   getFormattedAttrEventDay,
@@ -11,20 +9,17 @@ import {
 import { typeIcons } from '/src/const.js';
 
 function createLayout(pointData, destinationsData, offersData) {
-  // ВАЖНО: Теперь pointData должен быть уже адаптированным (с полями basePrice, dateFrom и т.д.)
   const {
-    basePrice, // Адаптировано: было base_price
-    dateFrom, // Адаптировано: было date_from
-    dateTo, // Адаптировано: было date_to
+    basePrice,
+    dateFrom,
+    dateTo,
     destination,
-    isFavorite, // Адаптировано: было is_favorite
+    isFavorite,
     offers,
     type,
   } = pointData;
 
-  console.log('📊 Point data in PointItemView:', pointData); // Для отладки
 
-  // Используем dayjs для форматирования дат
   const eventDay = getFormattedEventDay(dateFrom);
   const eventTimeStart = getFormattedTimeEvent(dateFrom);
   const eventTimeEnd = getFormattedTimeEvent(dateTo);
@@ -33,14 +28,12 @@ function createLayout(pointData, destinationsData, offersData) {
   const eventTimeEndAttr = getFormattedAttrDatatimeEvent(dateTo);
   const timeDurationInMinutes = getTimeDuration(dateFrom, dateTo);
 
-  // НАЙДЕМ НАЗВАНИЕ НАПРАВЛЕНИЯ
   let nameOfDestination = '';
   if (destination && destinationsData) {
     const destinationItem = destinationsData.find((element) => destination === element.id);
     nameOfDestination = destinationItem ? destinationItem.name : 'Unknown Destination';
   }
 
-  // НАЙДЕМ ВЫБРАННЫЕ ПРЕДЛОЖЕНИЯ
   let selectedOffers = [];
   if (offersData && offers && offers.length > 0) {
     offersData.forEach((offerData) => {
@@ -52,7 +45,6 @@ function createLayout(pointData, destinationsData, offersData) {
     });
   }
 
-  // ИСПРАВЛЯЕМ ИКОНКУ
   const iconSrc = typeIcons[type] || typeIcons.null || 'img/icons/check-in.png';
 
   return `
@@ -115,7 +107,6 @@ export default class PointItemView extends AbstractView {
     this.#handleRollupClick = handleRollupClick;
     this.#handleFavoriteClick = handleFavoriteClick;
 
-    // Добавляем обработчики после рендера
     this.#setEventListeners();
   }
 

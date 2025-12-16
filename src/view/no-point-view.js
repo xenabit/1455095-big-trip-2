@@ -1,6 +1,4 @@
-// /src/view/no-point-view.js
-
-import AbstractView from '../framework/view/abstract-view';
+import AbstractView from '../framework/view/abstract-view.js';
 
 function createTemplate(message) {
   return `

@@ -1,9 +1,7 @@
-// /src/view/point-edit-view.js (исправляем обработку цены)
 import AbstractStatefulView from '/src/framework/view/abstract-stateful-view.js';
 import { typeIcons } from '/src/const.js';
 import {
   getFormattedEditDateTime,
-  parseFlatpickrDate,
   FLATPICKR_DATE_FORMAT
 } from '../utils/utils.js';
 
@@ -53,34 +51,6 @@ export default class PointEditView extends AbstractStatefulView {
     return this.#createTemplate(this._state);
   }
 
-  // /src/view/point-edit-view.js
-
-  // Добавляем метод для отображения состояния ошибки
-  setAborting() {
-    if (this.#isDestroyed) {
-      return;
-    }
-
-    const saveButton = this.element?.querySelector('.event__save-btn');
-    const resetButton = this.element?.querySelector('.event__reset-btn');
-
-    if (saveButton) {
-      saveButton.textContent = 'Save';
-      saveButton.disabled = false;
-    }
-
-    if (resetButton) {
-      resetButton.textContent = 'Delete';
-      resetButton.disabled = false;
-    }
-
-    // Добавляем анимацию или сообщение об ошибке
-    this.shake(() => {
-    // Можно показать сообщение об ошибке
-      this.#showQuickError('Failed to save changes. Please try again.');
-    });
-  }
-
   removeElement() {
     this.#isDestroyed = true;
 
@@ -103,16 +73,23 @@ export default class PointEditView extends AbstractStatefulView {
     }
 
     const saveButton = this.element?.querySelector('.event__save-btn');
+    const resetButton = this.element?.querySelector('.event__reset-btn');
+    const rollupButton = this.element?.querySelector('.event__rollup-btn');
+
     if (saveButton) {
       saveButton.textContent = 'Saving...';
       saveButton.disabled = true;
     }
 
-    const resetButton = this.element?.querySelector('.event__reset-btn');
     if (resetButton) {
       resetButton.disabled = true;
     }
+
+    if (rollupButton) {
+      rollupButton.disabled = true;
+    }
   }
+
 
   setDeleting() {
     if (this.#isDestroyed) {
@@ -120,15 +97,47 @@ export default class PointEditView extends AbstractStatefulView {
     }
 
     const resetButton = this.element?.querySelector('.event__reset-btn');
+    const saveButton = this.element?.querySelector('.event__save-btn');
+    const rollupButton = this.element?.querySelector('.event__rollup-btn');
+
     if (resetButton) {
       resetButton.textContent = 'Deleting...';
       resetButton.disabled = true;
     }
 
-    const saveButton = this.element?.querySelector('.event__save-btn');
     if (saveButton) {
       saveButton.disabled = true;
     }
+
+    if (rollupButton) {
+      rollupButton.disabled = true;
+    }
+  }
+
+  setAborting() {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const saveButton = this.element?.querySelector('.event__save-btn');
+    const resetButton = this.element?.querySelector('.event__reset-btn');
+    const rollupButton = this.element?.querySelector('.event__rollup-btn');
+
+    if (saveButton) {
+      saveButton.textContent = 'Save';
+      saveButton.disabled = false;
+    }
+
+    if (resetButton) {
+      resetButton.textContent = 'Delete';
+      resetButton.disabled = false;
+    }
+
+    if (rollupButton) {
+      rollupButton.disabled = false;
+    }
+
+    this.shake(() => {});
   }
 
   resetButtons() {
@@ -137,15 +146,21 @@ export default class PointEditView extends AbstractStatefulView {
     }
 
     const saveButton = this.element?.querySelector('.event__save-btn');
+    const resetButton = this.element?.querySelector('.event__reset-btn');
+    const rollupButton = this.element?.querySelector('.event__rollup-btn');
+
     if (saveButton) {
       saveButton.textContent = 'Save';
       saveButton.disabled = false;
     }
 
-    const resetButton = this.element?.querySelector('.event__reset-btn');
     if (resetButton) {
       resetButton.textContent = 'Delete';
       resetButton.disabled = false;
+    }
+
+    if (rollupButton) {
+      rollupButton.disabled = false;
     }
   }
 
@@ -255,7 +270,6 @@ export default class PointEditView extends AbstractStatefulView {
 
     const priceInput = this.element.querySelector('.event__input--price');
     if (priceInput) {
-      // ОБНОВЛЯЕМ ТОЛЬКО СОСТОЯНИЕ, БЕЗ ПЕРЕРИСОВКИ
       priceInput.addEventListener('input', this.#priceInputHandler);
       priceInput.addEventListener('change', this.#priceChangeHandler);
       priceInput.addEventListener('keydown', this.#priceKeydownHandler);
@@ -270,7 +284,6 @@ export default class PointEditView extends AbstractStatefulView {
     this.#initDatePickers();
   }
 
-  // ОБНОВЛЯЕМ СОСТОЯНИЕ БЕЗ ПЕРЕРИСОВКИ ЭЛЕМЕНТА
   #updateStateWithoutRerender(update) {
     if (this.#isDestroyed) {
       return;
@@ -287,7 +300,6 @@ export default class PointEditView extends AbstractStatefulView {
     evt.preventDefault();
     const newType = evt.target.value;
 
-    // Для смены типа нужна перерисовка
     this.updateElement({
       type: newType,
       offers: [],
@@ -427,7 +439,6 @@ export default class PointEditView extends AbstractStatefulView {
     this.#updateStateWithoutRerender({ offers: updatedOffers });
   };
 
-  // ИСПРАВЛЕННЫЙ ОБРАБОТЧИК ВВОДА ЦЕНЫ - БЕЗ ПЕРЕРИСОВКИ
   #priceInputHandler = (evt) => {
     if (this.#isDestroyed) {
       return;
@@ -436,23 +447,18 @@ export default class PointEditView extends AbstractStatefulView {
     const input = evt.target;
     const value = input.value;
 
-    // Удаляем все нецифровые символы, кроме минуса в начале
     const cleanedValue = value.replace(/[^\d-]/g, '');
 
-    // Удаляем минусы не в начале строки
     let finalValue = cleanedValue.replace(/(?!^-)-/g, '');
 
-    // Ограничиваем одним минусом
     if (finalValue.startsWith('--')) {
       finalValue = finalValue.replace(/--+/g, '-');
     }
 
-    // Если значение изменилось, обновляем поле
     if (value !== finalValue) {
       input.value = finalValue;
     }
 
-    // Обновляем состояние без перерисовки
     const numericValue = finalValue === '-' || finalValue === '' ? 0 : parseInt(finalValue, 10) || 0;
     this.#updateStateWithoutRerender({ basePrice: numericValue });
   };
@@ -484,7 +490,6 @@ export default class PointEditView extends AbstractStatefulView {
       return;
     }
 
-    // Разрешаем минус только в начале строки
     if (evt.key === '-' && evt.target.selectionStart !== 0) {
       evt.preventDefault();
       return;
@@ -503,7 +508,6 @@ export default class PointEditView extends AbstractStatefulView {
     const input = evt.target;
     const value = input.value;
 
-    // Если поле пустое или только минус, устанавливаем 0
     if (!value || value === '' || value === '-') {
       input.value = '0';
       this.#updateStateWithoutRerender({ basePrice: 0 });
@@ -512,7 +516,6 @@ export default class PointEditView extends AbstractStatefulView {
 
     const numericValue = parseInt(value, 10);
 
-    // Проверяем минимальное значение
     if (numericValue < 0) {
       input.value = '0';
       this.#updateStateWithoutRerender({ basePrice: 0 });
@@ -553,101 +556,72 @@ export default class PointEditView extends AbstractStatefulView {
       return;
     }
 
-    Promise.resolve().then(() => {
-      if (!this.#validateForm()) {
-        this.shake(() => {
-          this.resetButtons();
-        });
-        return;
-      }
 
+    Promise.resolve().then(() => {
       const formData = this.#collectFormData();
 
+
       if (!formData) {
+        this.resetButtons();
+        this.#showQuickError('Please fill in all required fields correctly');
         return;
       }
+
+      if (!this.#validateFormBasic(formData)) {
+        this.resetButtons();
+        this.#showQuickError('Invalid data. Please check your input.');
+        return;
+      }
+
 
       if (this.#handleSubmit) {
         this.#handleSubmit(formData);
+      } else {
+        this.resetButtons();
       }
-    }).catch((error) => {
-      console.error('Form submit error:', error);
+    }).catch(() => {
+      this.resetButtons();
     });
   };
 
+  #validateFormBasic(formData) {
+    if (!formData.destination) {
+      return false;
+    }
+
+    if (typeof formData.basePrice !== 'number' || formData.basePrice <= 0) {
+      return false;
+    }
+
+    if (!formData.dateFrom || !formData.dateTo) {
+      return false;
+    }
+
+    return true;
+  }
+
   #collectFormData() {
-    if (this.#isDestroyed || !this.element) {
-      return null;
-    }
 
-    const destinationInput = this.element.querySelector('.event__input--destination');
-    const priceInput = this.element.querySelector('.event__input--price');
-    const dateFromInput = this.element.querySelector('#event-start-time-1');
-    const dateToInput = this.element.querySelector('#event-end-time-1');
-
-    if (!destinationInput || !priceInput) {
-      console.error('Form fields not found');
-      return null;
-    }
-
-    const destinationName = destinationInput.value.trim();
-    const priceValue = priceInput.value;
-
-    const destination = this.#destinationsData.find((d) =>
-      d.name.toLowerCase() === destinationName.toLowerCase()
-    );
-
-    if (!destination) {
-      this.#showDestinationError(destinationInput, `"${destinationName}" не найден. Выберите из списка.`);
-      destinationInput.focus();
-      return null;
-    }
-
-    const price = parseInt(priceValue, 10);
-    if (isNaN(price) || price < 0) {
-      this.#showPriceError(priceInput, 'Введите корректную цену (больше или равно 0)');
-      priceInput.focus();
-      return null;
-    }
-
-    let dateFrom = this._state.dateFrom;
-    let dateTo = this._state.dateTo;
-
-    if (this.#dateFromPicker && this.#dateFromPicker.selectedDates[0]) {
-      dateFrom = this.#dateFromPicker.selectedDates[0].toISOString();
-    } else if (dateFromInput && dateFromInput.value) {
-      try {
-        dateFrom = parseFlatpickrDate(dateFromInput.value);
-      } catch (error) {
-        console.error('Error parsing dateFrom:', error);
+    const typeRadios = this.element.querySelectorAll('.event__type-input');
+    let selectedType = 'flight';
+    typeRadios.forEach((radio) => {
+      if (radio.checked) {
+        selectedType = radio.value;
       }
-    }
+    });
 
-    if (this.#dateToPicker && this.#dateToPicker.selectedDates[0]) {
-      dateTo = this.#dateToPicker.selectedDates[0].toISOString();
-    } else if (dateToInput && dateToInput.value) {
-      try {
-        dateTo = parseFlatpickrDate(dateToInput.value);
-      } catch (error) {
-        console.error('Error parsing dateTo:', error);
-      }
-    }
-
-    if (!dateFrom || !dateTo || new Date(dateTo) <= new Date(dateFrom)) {
-      alert('Выберите корректные даты. Дата окончания должна быть позже даты начала.');
-      return null;
-    }
-
-    return {
+    const formData = {
       id: this._state.id,
-      basePrice: price,
-      dateFrom: dateFrom,
-      dateTo: dateTo,
-      destination: destination.id,
-      isFavorite: this._state.isFavorite,
-      offers: this._state.offers,
-      type: this._state.type,
+      basePrice: Number(this._state.basePrice) || 0,
+      dateFrom: this._state.dateFrom,
+      dateTo: this._state.dateTo,
+      destination: this._state.destination,
+      isFavorite: this._state.isFavorite || false,
+      offers: this._state.offers || [],
+      type: selectedType || 'flight',
     };
+
+    return formData;
   }
 
   #validateForm() {
@@ -658,7 +632,6 @@ export default class PointEditView extends AbstractStatefulView {
     const destinationInput = this.element.querySelector('.event__input--destination');
     const priceInput = this.element.querySelector('.event__input--price');
 
-    // Базовые проверки
     if (!destinationInput || !destinationInput.value.trim()) {
       this.#showQuickError('Выберите пункт назначения из списка');
       destinationInput?.focus();
@@ -676,7 +649,6 @@ export default class PointEditView extends AbstractStatefulView {
       return false;
     }
 
-    // Проверка цены
     if (!priceInput || !priceInput.value || priceInput.value === '0') {
       this.#showQuickError('Введите цену больше 0');
       priceInput?.focus();
@@ -693,9 +665,7 @@ export default class PointEditView extends AbstractStatefulView {
     return true;
   }
 
-  // БЫСТРЫЙ ПОКАЗ ОШИБОК (без alert)
   #showQuickError(message) {
-    // Создаем временный элемент ошибки
     const errorDiv = document.createElement('div');
     errorDiv.textContent = message;
     errorDiv.style.cssText = `
@@ -710,7 +680,6 @@ export default class PointEditView extends AbstractStatefulView {
       animation: fadeInOut 3s ease;
     `;
 
-    // Добавляем стили для анимации
     const style = document.createElement('style');
     style.textContent = `
       @keyframes fadeInOut {
@@ -724,7 +693,6 @@ export default class PointEditView extends AbstractStatefulView {
     document.head.appendChild(style);
     document.body.appendChild(errorDiv);
 
-    // Удаляем через 3 секунды
     setTimeout(() => {
       if (errorDiv.parentElement) {
         errorDiv.remove();
@@ -791,6 +759,13 @@ export default class PointEditView extends AbstractStatefulView {
     const currentTypeOffers = this.#offersData.find((offer) => offer.type === type);
     const availableOffers = currentTypeOffers ? currentTypeOffers.offers : [];
 
+    const validOffers = state.offers.filter((offerId) =>
+      availableOffers.some((offer) => offer.id === offerId)
+    );
+
+    if (validOffers.length !== state.offers.length) {
+      this._setState({ offers: validOffers });
+    }
     const offersTemplate = availableOffers.map((offer) => `
       <div class="event__offer-selector">
         <input class="event__offer-checkbox visually-hidden"
@@ -881,7 +856,7 @@ export default class PointEditView extends AbstractStatefulView {
                      value="${basePrice}"
                      min="0"
                      step="1"
-                     pattern="\d*"
+                     pattern="\\d*"
                      inputmode="numeric"
                      placeholder="0"
                      required>

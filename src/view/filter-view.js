@@ -1,7 +1,4 @@
-// /src/view/filter-view.js
-
-import AbstractView from '../framework/view/abstract-view';
-import { FilterType } from '../const.js';
+import AbstractView from '../framework/view/abstract-view.js';
 
 function createFilterItemTemplate(filter, currentFilterType) {
   const { type, name, count } = filter;
@@ -49,10 +46,6 @@ export default class FilterView extends AbstractView {
   constructor({ filters, currentFilterType, onFilterTypeChange }) {
     super();
 
-    // Проверяем, что параметры переданы
-    if (!filters || !onFilterTypeChange) {
-      console.error('FilterView: Missing required parameters');
-    }
 
     this.#filters = filters;
     this.#currentFilter = currentFilterType;
