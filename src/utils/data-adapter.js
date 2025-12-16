@@ -4,7 +4,13 @@ export const DataAdapter = {
       return null;
     }
 
-    console.log('🔧 DataAdapter.toClient input:', data);
+    // Разворачиваем вложенный тернарный оператор
+    let isFavorite = false;
+    if (data.isFavorite !== undefined) {
+      isFavorite = Boolean(data.isFavorite);
+    } else if (data.is_favorite !== undefined) {
+      isFavorite = Boolean(data.is_favorite);
+    }
 
     const result = {
       id: data.id || null,
@@ -12,46 +18,34 @@ export const DataAdapter = {
       dateFrom: data.dateFrom || data.date_from || new Date().toISOString(),
       dateTo: data.dateTo || data.date_to || new Date(Date.now() + 3600000).toISOString(),
       destination: data.destination || null,
-      isFavorite: data.isFavorite !== undefined ? Boolean(data.isFavorite) :
-        data.is_favorite !== undefined ? Boolean(data.is_favorite) : false,
+      isFavorite: isFavorite,
       offers: data.offers || [],
       type: data.type || 'flight',
     };
 
-    console.log('🔧 DataAdapter.toClient output:', result);
     return result;
   },
-
   toServer: function(data) {
     if (!data) {
       return null;
     }
 
-    console.log('🔧 DataAdapter.toServer input:', data);
 
     // Сначала нормализуем к клиентскому формату
     const clientData = this.toClient(data);
 
-    console.log('🔧 DataAdapter.toServer after toClient:', clientData);
 
     // Затем конвертируем в серверный формат
     const result = {
       id: clientData.id,
-      base_price: Number(clientData.basePrice) || 0,
-      date_from: clientData.dateFrom,
-      date_to: clientData.dateTo,
+      base_price: Number(clientData.basePrice) || 0, // eslint-disable-line camelcase
+      date_from: clientData.dateFrom, // eslint-disable-line camelcase
+      date_to: clientData.dateTo, // eslint-disable-line camelcase
       destination: clientData.destination,
-      is_favorite: Boolean(clientData.isFavorite),
+      is_favorite: Boolean(clientData.isFavorite), // eslint-disable-line camelcase
       offers: clientData.offers || [],
       type: clientData.type || 'flight',
     };
-
-    console.log('🔧 DataAdapter.toServer output:', result);
-    console.log('🔍 Проверка всех полей:');
-    console.log('- type exists:', 'type' in result, result.type);
-    console.log('- is_favorite exists:', 'is_favorite' in result, result.is_favorite);
-    console.log('- offers exists:', 'offers' in result, result.offers);
-    console.log('- destination exists:', 'destination' in result, result.destination);
 
     return result;
   },

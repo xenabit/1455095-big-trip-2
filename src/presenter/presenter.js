@@ -46,12 +46,9 @@ export default class Presenter {
   }
 
   async init() {
-    console.log('🎬 Presenter init started');
-    // Инициализируем кнопку New Event из существующей разметки
     this.#initExistingNewEventButton();
     this.#showLoading();
 
-    // Инициализируем кнопку New Event
     this.#initExistingNewEventButton();
 
     this.#sortComponent = new SortView({
@@ -59,23 +56,16 @@ export default class Presenter {
     });
     const eventsSection = document.querySelector('.trip-events');
     if (!eventsSection) {
-      console.error('Could not find .trip-events container');
       return;
     }
 
-    // Ждем загрузки данных
     try {
-      // В реальном проекте здесь можно добавить Promise.all для ожидания загрузки
-      // или использовать события моделей
-
-      // Скрываем заглушку и показываем контент
       this.#hideLoading();
       render(this.#sortComponent, eventsSection);
       render(this.#pointsListComponent, eventsSection);
       this.#renderAllPoints();
 
     } catch (error) {
-      console.error('Failed to load data:', error);
       this.#hideLoading();
       this.#renderNoPoints();
     }
@@ -92,20 +82,13 @@ export default class Presenter {
     render(this.#loadingComponent, eventsSection);
   }
 
-  // /src/presenter/presenter.js
-  // /src/presenter/presenter.js
-
   #hideLoading() {
-    console.log('🔄 Hiding loading...');
 
-    // Просто удаляем элемент из DOM
     const loadingElement = document.querySelector('.trip-events__msg');
     if (loadingElement && loadingElement.textContent === 'Loading...') {
-      console.log('✅ Found loading element, removing...');
       loadingElement.remove();
     }
 
-    // И удаляем компонент
     if (this.#loadingComponent) {
       remove(this.#loadingComponent);
       this.#loadingComponent = null;
@@ -113,123 +96,93 @@ export default class Presenter {
   }
 
   #initExistingNewEventButton() {
-    // Находим существующую кнопку в DOM
     const newEventButton = document.querySelector('.trip-main__event-add-btn');
 
     if (!newEventButton) {
-      console.error('Could not find .trip-main__event-add-btn in HTML');
       return;
     }
 
-    console.log('✅ Found existing New Event button');
 
-    // Сохраняем ссылку на кнопку
     this.#newEventButtonElement = newEventButton;
 
-    // Добавляем обработчик
     newEventButton.addEventListener('click', this.#handleNewEventButtonClick);
   }
 
   #handleNewEventButtonClick = () => {
-    console.log('🖱️ Existing New Event button clicked');
 
-    // Сбрасываем фильтр на "Everything" при создании новой точки
     this.#filterModel.setFilter(UpdateType.MAJOR, FilterType.EVERYTHING);
 
-    // Сбрасываем сортировку на DAY
     this.#currentSortType = SortType.DAY;
     if (this.#sortComponent) {
       this.#sortComponent.setSortType(SortType.DAY);
     }
 
-    // Закрываем все открытые формы редактирования
     this.#handleModeChange();
 
-    // Создаем презентер для новой точки
     this.createPoint();
   };
 
   createPoint() {
-  // Если уже есть активная форма создания - не создаем новую
     if (this.#newPointPresenter) {
       return;
     }
 
-    console.log('🎯 Creating new point presenter...');
 
     this.#newPointPresenter = new NewPointPresenter({
       container: this.#pointsListComponent.element,
       destinationsModel: this.#destinationsModel,
       offersModel: this.#offersModel,
-      pointsModel: this.#pointsModel, // <-- ДОБАВЬТЕ ЭТОТ ПАРАМЕТР!
+      pointsModel: this.#pointsModel,
       onDataChange: this.#handleViewAction,
       onDestroy: this.#handleNewPointDestroy
     });
 
     this.#newPointPresenter.init();
 
-    // Блокируем кнопку New Event
     this.#disableNewEventButton();
   }
 
-  // /src/presenter/presenter.js
   #handleNewPointDestroy = () => {
-  // Очищаем ссылку на презентер
     this.#newPointPresenter = null;
 
-    // Разблокируем кнопку New Event
     this.#enableNewEventButton();
 
-    // ЯВНО ЗАКРЫВАЕМ ФОРМУ принудительно
     if (this.#newPointPresenter) {
       this.#newPointPresenter.destroy();
     }
 
-    console.log('🔓 New Point Presenter destroyed');
   };
 
   #disableNewEventButton() {
     if (this.#newEventButtonElement) {
       this.#newEventButtonElement.disabled = true;
-      console.log('🔒 New Event button disabled');
     }
   }
 
   #enableNewEventButton() {
     if (this.#newEventButtonElement) {
       this.#newEventButtonElement.disabled = false;
-      console.log('🔓 New Event button enabled');
     }
   }
 
   #handleViewAction = async (actionType, payload) => {
-    console.log(`🎯 View action: ${actionType}`, payload);
 
     switch (actionType) {
       case UserAction.UPDATE_POINT:
-        console.log('🔄 Presenter: Updating point...');
         try {
           await this.#pointsModel.updatePoint(UpdateType.MINOR, payload);
-          console.log('✅ Presenter: Point updated successfully');
         } catch (error) {
-          console.error('❌ Presenter: Update failed:', error);
-          // Нужно уведомить PointPresenter об ошибке
           this.#handleUpdateError(payload.id, error);
         }
         break;
       case UserAction.ADD_POINT:
-        console.log('➕ Adding point:', payload);
-        // Устанавливаем состояние "сохранение" для формы
         if (this.#newPointPresenter) {
-          console.log('💾 Setting saving state...');
           this.#newPointPresenter.setSaving();
         }
 
-        console.log('📤 Calling model.addPoint...');
         this.#pointsModel.addPoint(UpdateType.MINOR, payload);
         break;
       case UserAction.DELETE_POINT:
-        console.log('🗑️ Deleting point:', payload);
         this.#pointsModel.deletePoint(UpdateType.MINOR, payload.id || payload);
         break;
       default:
@@ -237,21 +190,15 @@ export default class Presenter {
     }
   };
 
-  #handleUpdateError = (pointId, error) => {
-  // Находим презентер точки и уведомляем об ошибке
+  #handleUpdateError = (pointId) => {
     const pointPresenter = this.#pointPresenters.get(pointId);
     if (pointPresenter) {
-    // Нужно добавить метод в PointPresenter для обработки ошибок
       pointPresenter.setAborting();
     }
   };
 
-  // /src/presenter/presenter.js (исправляем #handleModelEvent)
-
-  // /src/presenter/presenter.js
 
   #handleModelEvent = (updateType, payload) => {
-    console.log(`🎯 Model event: ${updateType}`, payload);
 
     switch (updateType) {
       case UpdateType.PATCH:
@@ -273,18 +220,12 @@ export default class Presenter {
         break;
 
       case UpdateType.INIT:
-        console.log('🚀 INIT event received!');
-        console.log('📊 Points available:', this.#pointsModel.getPoints().length);
 
-        // ВАЖНО: Сначала скрываем loading
         this.#hideLoading();
 
-        // Проверяем, есть ли точки
         if (this.#pointsModel.getPoints().length === 0) {
-          console.log('📭 No points, showing empty state');
           this.#renderNoPoints();
         } else {
-          console.log('🎨 Rendering all points');
           this.#renderAllPoints();
         }
         break;
@@ -298,7 +239,6 @@ export default class Presenter {
     return filterPoints(points, filterType);
   }
 
-  // /src/presenter/presenter.js
 
   #getSortedPoints(sortType = this.#currentSortType) {
     const filteredPoints = this.#getFilteredPoints();
@@ -307,7 +247,6 @@ export default class Presenter {
       return [];
     }
 
-    // ПРИВОДИМ ВСЕ ТОЧКИ К ЕДИНОМУ ФОРМАТУ
     const normalizedPoints = filteredPoints.map((point) => DataAdapter.forSorting(point));
 
     switch (sortType) {
@@ -322,7 +261,7 @@ export default class Presenter {
         return normalizedPoints.sort((a, b) => {
           const durationA = new Date(a.dateTo) - new Date(a.dateFrom);
           const durationB = new Date(b.dateTo) - new Date(b.dateFrom);
-          return durationB - durationA; // Сначала самые длинные
+          return durationB - durationA;
         });
 
       case SortType.PRICE:
@@ -333,7 +272,6 @@ export default class Presenter {
     }
   }
 
-  // /src/presenter/presenter.js (обновляем #renderNoPoints)
 
   #renderNoPoints(error = null) {
     const filterType = this.#filterModel.filter;
@@ -407,24 +345,9 @@ export default class Presenter {
   };
 
   #renderAllPoints() {
-    console.group('🔄 renderAllPoints');
 
-    // Проверяем, какие данные приходят
     const sortedPoints = this.#getSortedPoints();
-    console.log('📊 Total points to render:', sortedPoints.length);
 
-    if (sortedPoints.length > 0) {
-      console.log('🔍 First point for sorting check:', {
-        id: sortedPoints[0].id,
-        dateFrom: sortedPoints[0].dateFrom,
-        dateTo: sortedPoints[0].dateTo,
-        basePrice: sortedPoints[0].basePrice,
-        has_date_from: 'date_from' in sortedPoints[0],
-        has_dateFrom: 'dateFrom' in sortedPoints[0]
-      });
-    }
-
-    console.groupEnd();
 
     if (this.#noPointComponent) {
       remove(this.#noPointComponent);
