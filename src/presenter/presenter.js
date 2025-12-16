@@ -9,6 +9,7 @@ import { render, remove } from '../framework/render.js';
 import { SortType, UpdateType, FilterType, UserAction } from '/src/const.js';
 import { filterPoints } from '/src/utils/filter.js';
 import NoPointView from '/src/view/no-point-view.js';
+import { DataAdapter } from '/src/utils/data-adapter.js';
 
 export default class Presenter {
   #pointsListComponent = new PointsListView();
@@ -149,15 +150,18 @@ export default class Presenter {
   };
 
   createPoint() {
-    // Если уже есть активная форма создания - не создаем новую
+  // Если уже есть активная форма создания - не создаем новую
     if (this.#newPointPresenter) {
       return;
     }
+
+    console.log('🎯 Creating new point presenter...');
 
     this.#newPointPresenter = new NewPointPresenter({
       container: this.#pointsListComponent.element,
       destinationsModel: this.#destinationsModel,
       offersModel: this.#offersModel,
+      pointsModel: this.#pointsModel, // <-- ДОБАВЬТЕ ЭТОТ ПАРАМЕТР!
       onDataChange: this.#handleViewAction,
       onDestroy: this.#handleNewPointDestroy
     });
@@ -168,12 +172,20 @@ export default class Presenter {
     this.#disableNewEventButton();
   }
 
+  // /src/presenter/presenter.js
   #handleNewPointDestroy = () => {
-    // Очищаем ссылку на презентер
+  // Очищаем ссылку на презентер
     this.#newPointPresenter = null;
 
     // Разблокируем кнопку New Event
     this.#enableNewEventButton();
+
+    // ЯВНО ЗАКРЫВАЕМ ФОРМУ принудительно
+    if (this.#newPointPresenter) {
+      this.#newPointPresenter.destroy();
+    }
+
+    console.log('🔓 New Point Presenter destroyed');
   };
 
   #disableNewEventButton() {
@@ -286,6 +298,8 @@ export default class Presenter {
     return filterPoints(points, filterType);
   }
 
+  // /src/presenter/presenter.js
+
   #getSortedPoints(sortType = this.#currentSortType) {
     const filteredPoints = this.#getFilteredPoints();
 
@@ -293,28 +307,29 @@ export default class Presenter {
       return [];
     }
 
-    const pointsCopy = [...filteredPoints];
+    // ПРИВОДИМ ВСЕ ТОЧКИ К ЕДИНОМУ ФОРМАТУ
+    const normalizedPoints = filteredPoints.map((point) => DataAdapter.forSorting(point));
 
     switch (sortType) {
       case SortType.DAY:
-        return pointsCopy.sort((a, b) => {
-          const dateA = new Date(a.date_from);
-          const dateB = new Date(b.date_from);
+        return normalizedPoints.sort((a, b) => {
+          const dateA = new Date(a.dateFrom);
+          const dateB = new Date(b.dateFrom);
           return dateA - dateB;
         });
 
       case SortType.TIME:
-        return pointsCopy.sort((a, b) => {
-          const durationA = new Date(a.date_to) - new Date(a.date_from);
-          const durationB = new Date(b.date_to) - new Date(b.date_from);
-          return durationB - durationA;
+        return normalizedPoints.sort((a, b) => {
+          const durationA = new Date(a.dateTo) - new Date(a.dateFrom);
+          const durationB = new Date(b.dateTo) - new Date(b.dateFrom);
+          return durationB - durationA; // Сначала самые длинные
         });
 
       case SortType.PRICE:
-        return pointsCopy.sort((a, b) => b.base_price - a.base_price);
+        return normalizedPoints.sort((a, b) => b.basePrice - a.basePrice);
 
       default:
-        return pointsCopy;
+        return normalizedPoints;
     }
   }
 
@@ -392,12 +407,30 @@ export default class Presenter {
   };
 
   #renderAllPoints() {
+    console.group('🔄 renderAllPoints');
+
+    // Проверяем, какие данные приходят
+    const sortedPoints = this.#getSortedPoints();
+    console.log('📊 Total points to render:', sortedPoints.length);
+
+    if (sortedPoints.length > 0) {
+      console.log('🔍 First point for sorting check:', {
+        id: sortedPoints[0].id,
+        dateFrom: sortedPoints[0].dateFrom,
+        dateTo: sortedPoints[0].dateTo,
+        basePrice: sortedPoints[0].basePrice,
+        has_date_from: 'date_from' in sortedPoints[0],
+        has_dateFrom: 'dateFrom' in sortedPoints[0]
+      });
+    }
+
+    console.groupEnd();
+
     if (this.#noPointComponent) {
       remove(this.#noPointComponent);
       this.#noPointComponent = null;
     }
 
-    const sortedPoints = this.#getSortedPoints();
 
     if (sortedPoints.length === 0) {
       this.#renderNoPoints();

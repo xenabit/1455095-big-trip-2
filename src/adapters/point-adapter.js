@@ -1,43 +1,39 @@
-// /src/adapters/point-adapter.js
-
 export default class PointAdapter {
-  /**
-   * Адаптирует данные с сервера к формату приложения
-   */
-  static adaptToClient(point) {
-    const adaptedPoint = {
-      id: point.id,
-      basePrice: point.base_price,
-      dateFrom: point.date_from,
-      dateTo: point.date_to,
-      destination: point.destination,
-      isFavorite: point.is_favorite,
-      offers: point.offers || [],
-      type: point.type,
+  static adaptToClient(serverPoint) {
+    console.log('🔧 PointAdapter.adaptToClient input:', serverPoint);
+    return {
+      id: serverPoint.id,
+      basePrice: serverPoint.base_price,
+      dateFrom: serverPoint.date_from,
+      dateTo: serverPoint.date_to,
+      destination: serverPoint.destination,
+      isFavorite: serverPoint.is_favorite,
+      offers: serverPoint.offers || [],
+      type: serverPoint.type,
     };
-
-    return adaptedPoint;
   }
 
-  /**
-   * Адаптирует данные приложения к формату сервера
-   */
-  static adaptToServer(point) {
-    if (!point) {
-      return null;
-    }
+  static adaptToServer(clientPoint) {
+    console.log('🔧 PointAdapter.adaptToServer input:', clientPoint);
 
-    const adaptedPoint = {
-      'id': point.id,
-      'base_price': Number(point.basePrice) || 0,
-      'date_from': point.dateFrom,
-      'date_to': point.dateTo,
-      'destination': point.destination,
-      'is_favorite': Boolean(point.isFavorite),
-      'offers': Array.isArray(point.offers) ? point.offers : [],
-      'type': point.type || 'flight',
+    const serverPoint = {
+      id: clientPoint.id,
+      base_price: Number(clientPoint.basePrice) || 0,
+      date_from: clientPoint.dateFrom,
+      date_to: clientPoint.dateTo,
+      destination: clientPoint.destination,
+      is_favorite: Boolean(clientPoint.isFavorite),
+      offers: clientPoint.offers || [],
+      type: clientPoint.type || 'flight',
     };
 
-    return adaptedPoint;
+    console.log('🔧 PointAdapter.adaptToServer output:', serverPoint);
+    console.log('🔍 Проверка полей PointAdapter:');
+    console.log('- type:', serverPoint.type);
+    console.log('- is_favorite:', serverPoint.is_favorite);
+    console.log('- offers:', serverPoint.offers);
+    console.log('- destination:', serverPoint.destination);
+
+    return serverPoint;
   }
 }

@@ -2,6 +2,7 @@ import Observable from '../framework/observable.js';
 import PointAdapter from '../adapters/point-adapter.js';
 import { UpdateType } from '../const.js';
 
+import { DataAdapter } from '../utils/data-adapter.js';
 export default class PointsModel extends Observable {
   #points = [];
   #apiService = null;
@@ -11,28 +12,21 @@ export default class PointsModel extends Observable {
     this.#apiService = apiService;
   }
 
+  // В методе init():
   async init() {
     try {
       console.log('🔄 Начинаю загрузку точек...');
-      const points = await this.#apiService.getPoints();
-      console.log('📥 Получены точки с сервера:', points);
+      const serverPoints = await this.#apiService.getPoints();
+      console.log('📥 Получены точки с сервера:', serverPoints);
 
-      this.#points = points.map(PointAdapter.adaptToClient);
+      // Используем PointAdapter вместо DataAdapter
+      this.#points = serverPoints.map((serverPoint) =>
+        PointAdapter.adaptToClient(serverPoint)
+      );
+
       console.log('✅ Адаптированные точки:', this.#points);
-
-      // Проверяем первую точку
-      if (this.#points.length > 0) {
-        const firstPoint = this.#points[0];
-        console.log('🔍 Первая точка после адаптации:', {
-          id: firstPoint.id,
-          basePrice: firstPoint.basePrice,
-          dateFrom: firstPoint.dateFrom,
-          dateTo: firstPoint.dateTo,
-          isFavorite: firstPoint.isFavorite
-        });
-      }
-
       this._notify(UpdateType.INIT, {});
+
     } catch (err) {
       console.error('❌ Ошибка загрузки точек:', err);
       this.#points = [];
@@ -42,55 +36,33 @@ export default class PointsModel extends Observable {
   }
 
   getPoints() {
-    console.log('📊 Получаю точки из модели:', this.#points.length);
-    return this.#points;
+  // ВОЗВРАЩАЕМ УЖЕ АДАПТИРОВАННЫЕ ДАННЫЕ
+    return this.#points.map((point) => DataAdapter.toClient(point));
   }
 
-
+  // Аналогично в updatePoint() используйте PointAdapter
   async updatePoint(updateType, updatedPoint) {
-    console.log('🔄 Model: Starting point update for:', updatedPoint.id);
+    console.log('🔄 Model: Updating point:', updatedPoint);
 
-    if (!updatedPoint || !updatedPoint.id) {
-      throw new Error('Invalid point data: missing id');
-    }
+    // АДАПТИРУЕМ ДЛЯ СЕРВЕРА
+    const serverPoint = PointAdapter.adaptToServer(updatedPoint);
 
-    const index = this.#points.findIndex((point) => point.id === updatedPoint.id);
+    const index = this.#points.findIndex((point) => point.id === serverPoint.id);
 
     if (index === -1) {
-      throw new Error(`Point with id ${updatedPoint.id} not found`);
+      throw new Error(`Point with id ${serverPoint.id} not found`);
     }
 
     try {
-      // 1. Преобразуем данные в формат сервера
-      const serverPoint = PointAdapter.adaptToServer(updatedPoint);
-      console.log('📤 Model: Sending to server:', serverPoint);
-
-      // 2. Отправляем запрос на сервер
       const response = await this.#apiService.updatePoint(serverPoint);
-      console.log('✅ Model: Server response:', response);
-
-      // 3. Преобразуем ответ сервера обратно в формат приложения
       const adaptedPoint = PointAdapter.adaptToClient(response);
-      console.log('🔄 Model: Adapted from server:', adaptedPoint);
 
-      console.log('🔄 Model: Starting point update for:', updatedPoint.id);
-
-      // Валидация данных
-      if (!this.#validatePointData(updatedPoint)) {
-        throw new Error('Invalid point data');
-      }
-
-
-      // 4. Обновляем данные в модели
       this.#points = [
         ...this.#points.slice(0, index),
         adaptedPoint,
         ...this.#points.slice(index + 1)
       ];
 
-      console.log('✅ Model: Points updated locally');
-
-      // 5. Уведомляем подписчиков об успешном обновлении
       this._notify(updateType, adaptedPoint);
 
     } catch (err) {
@@ -134,25 +106,40 @@ export default class PointsModel extends Observable {
     return true;
   }
 
+  // В методе addPoint():
   async addPoint(updateType, newPoint) {
-    try {
-      const serverPoint = PointAdapter.adaptToServer({
-        ...newPoint,
-        id: null // ID будет сгенерирован сервером
-      });
+    console.log('📥 Model: Adding new point:', newPoint);
 
+    try {
+    // 1. АДАПТИРУЕМ ДЛЯ СЕРВЕРА
+      const serverPoint = PointAdapter.adaptToServer(newPoint);
+      console.log('📤 Model: Adapted to server format:', serverPoint);
+
+      // 2. Отправляем на сервер
       const response = await this.#apiService.addPoint(serverPoint);
+      console.log('✅ Model: Server response:', response);
+
+      // 3. АДАПТИРУЕМ ОТВЕТ ОБРАТНО
       const adaptedPoint = PointAdapter.adaptToClient(response);
 
-      this.#points = [adaptedPoint, ...this.#points];
+      // 4. Добавляем в локальный массив
+      this.#points = [...this.#points, adaptedPoint];
+      console.log('➕ Model: Point added locally, total:', this.#points.length);
+
+      // 5. Уведомляем подписчиков
       this._notify(updateType, adaptedPoint);
+
+      return adaptedPoint;
+
     } catch (err) {
-      console.error('Failed to add point:', err);
-      throw new Error('Failed to add point');
+      console.error('❌ Model: Failed to add point:', err);
+      throw new Error(`Failed to add point: ${err.message}`);
     }
   }
 
   async deletePoint(updateType, pointId) {
+    console.log('🗑️ Model: Starting to delete point:', pointId);
+
     const index = this.#points.findIndex((point) => point.id === pointId);
 
     if (index === -1) {
@@ -160,17 +147,24 @@ export default class PointsModel extends Observable {
     }
 
     try {
+      // 1. Отправляем DELETE запрос на сервер
       await this.#apiService.deletePoint(pointId);
+      console.log('✅ Model: Server confirmed deletion');
 
+      // 2. Удаляем точку из локального массива
       this.#points = [
         ...this.#points.slice(0, index),
         ...this.#points.slice(index + 1)
       ];
 
+      console.log('✅ Model: Point deleted locally, total:', this.#points.length);
+
+      // 3. Уведомляем подписчиков
       this._notify(updateType, pointId);
+
     } catch (err) {
-      console.error('Failed to delete point:', err);
-      throw new Error('Failed to delete point');
+      console.error('❌ Model: Failed to delete point:', err);
+      throw new Error('Failed to delete point on server');
     }
   }
 }

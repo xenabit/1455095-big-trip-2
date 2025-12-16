@@ -124,6 +124,8 @@ export default class PointPresenter {
 
   // /src/presenter/point-presenter.js
 
+  // /src/presenter/point-presenter.js
+
   #handleFormSubmit = async (updatedPoint) => {
     console.log('📝 Point form submitted:', updatedPoint);
 
@@ -131,7 +133,7 @@ export default class PointPresenter {
     this.#pointEditComponent?.setSaving();
 
     try {
-    // Отправляем обновление (теперь это асинхронная операция)
+    // Отправляем обновление
       await this.#handlePointChange(UserAction.UPDATE_POINT, updatedPoint);
 
       console.log('✅ Form submitted successfully');
@@ -143,18 +145,41 @@ export default class PointPresenter {
       // Возвращаем кнопкам обычное состояние
       this.#pointEditComponent?.setAborting();
 
-      // Можно показать сообщение пользователю
-      this.#pointEditComponent?.shake(() => {
-      // Дополнительные действия после анимации
-      });
+      // Показываем сообщение об ошибке
+      alert('Failed to save changes. Please try again.');
     }
   };
 
-  #handleDeleteClick = (point) => {
-    console.log('🗑️ Deleting point:', point);
-    // Отправляем действие удаления
-    this.#handlePointChange(UserAction.DELETE_POINT, point || this.#point);
+
+  #handleDeleteClick = async (point) => {
+    console.log('🗑️ Delete button clicked for point:', point?.id || this.#point.id);
+
+    // Устанавливаем состояние "удаление"
+    this.#pointEditComponent?.setDeleting();
+
+    try {
+    // Отправляем запрос на удаление
+      await this.#handlePointChange(UserAction.DELETE_POINT, point || this.#point);
+
+      console.log('✅ Delete request sent successfully');
+      // Форма закроется через handleModelEvent когда модель уведомит об успешном удалении
+
+    } catch (error) {
+      console.error('❌ Failed to delete point:', error);
+
+      // Возвращаем кнопкам обычное состояние
+      this.#pointEditComponent?.setAborting();
+
+      // Показываем сообщение об ошибке
+      alert('Failed to delete point. Please try again.');
+    }
   };
+
+  setAborting() {
+    if (this.#pointEditComponent) {
+      this.#pointEditComponent.setAborting();
+    }
+  }
 
   #handleFavoriteClick = () => {
     console.log('⭐ Toggling favorite for point:', this.#point.id);

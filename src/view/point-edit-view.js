@@ -55,32 +55,6 @@ export default class PointEditView extends AbstractStatefulView {
 
   // /src/view/point-edit-view.js
 
-  // Добавляем метод для отображения состояния ошибки
-  setAborting() {
-    if (this.#isDestroyed) {
-      return;
-    }
-
-    const saveButton = this.element?.querySelector('.event__save-btn');
-    const resetButton = this.element?.querySelector('.event__reset-btn');
-
-    if (saveButton) {
-      saveButton.textContent = 'Save';
-      saveButton.disabled = false;
-    }
-
-    if (resetButton) {
-      resetButton.textContent = 'Delete';
-      resetButton.disabled = false;
-    }
-
-    // Добавляем анимацию или сообщение об ошибке
-    this.shake(() => {
-    // Можно показать сообщение об ошибке
-      this.#showQuickError('Failed to save changes. Please try again.');
-    });
-  }
-
   removeElement() {
     this.#isDestroyed = true;
 
@@ -112,6 +86,11 @@ export default class PointEditView extends AbstractStatefulView {
     if (resetButton) {
       resetButton.disabled = true;
     }
+
+    const rollupButton = this.element?.querySelector('.event__rollup-btn');
+    if (rollupButton) {
+      rollupButton.disabled = true;
+    }
   }
 
   setDeleting() {
@@ -129,6 +108,39 @@ export default class PointEditView extends AbstractStatefulView {
     if (saveButton) {
       saveButton.disabled = true;
     }
+
+    const rollupButton = this.element?.querySelector('.event__rollup-btn');
+    if (rollupButton) {
+      rollupButton.disabled = true;
+    }
+  }
+
+  setAborting() {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const saveButton = this.element?.querySelector('.event__save-btn');
+    if (saveButton) {
+      saveButton.textContent = 'Save';
+      saveButton.disabled = false;
+    }
+
+    const resetButton = this.element?.querySelector('.event__reset-btn');
+    if (resetButton) {
+      resetButton.textContent = 'Delete';
+      resetButton.disabled = false;
+    }
+
+    const rollupButton = this.element?.querySelector('.event__rollup-btn');
+    if (rollupButton) {
+      rollupButton.disabled = false;
+    }
+
+    // Анимация ошибки
+    this.shake(() => {
+      // Можно добавить дополнительную логику после анимации
+    });
   }
 
   resetButtons() {
@@ -283,11 +295,11 @@ export default class PointEditView extends AbstractStatefulView {
     this._setState(update);
   }
 
+  // /src/view/point-edit-view.js
   #typeChangeHandler = (evt) => {
     evt.preventDefault();
     const newType = evt.target.value;
 
-    // Для смены типа нужна перерисовка
     this.updateElement({
       type: newType,
       offers: [],
@@ -553,101 +565,92 @@ export default class PointEditView extends AbstractStatefulView {
       return;
     }
 
-    Promise.resolve().then(() => {
-      if (!this.#validateForm()) {
-        this.shake(() => {
-          this.resetButtons();
-        });
-        return;
-      }
+    console.log('🖱️ Form submit handler triggered');
 
+    Promise.resolve().then(() => {
+    // Сначала собираем данные
       const formData = this.#collectFormData();
 
+      console.log('📦 Collected form data:', formData);
+
       if (!formData) {
+        console.error('❌ Form data is null or invalid');
+        // Сбрасываем состояние кнопок
+        this.resetButtons();
+        // Показываем ошибку пользователю
+        this.#showQuickError('Please fill in all required fields correctly');
         return;
       }
+
+      // Проверяем минимальную валидацию
+      if (!this.#validateFormBasic(formData)) {
+        console.error('❌ Basic validation failed');
+        this.resetButtons();
+        this.#showQuickError('Invalid data. Please check your input.');
+        return;
+      }
+
+      console.log('✅ Form data is valid, calling submit handler');
 
       if (this.#handleSubmit) {
         this.#handleSubmit(formData);
+      } else {
+        console.error('❌ No submit handler found!');
+        this.resetButtons();
       }
     }).catch((error) => {
       console.error('Form submit error:', error);
+      this.resetButtons();
     });
   };
 
+  // Простая базовая валидация
+  #validateFormBasic(formData) {
+    if (!formData.destination) {
+      console.error('Missing destination');
+      return false;
+    }
+
+    if (typeof formData.basePrice !== 'number' || formData.basePrice <= 0) {
+      console.error('Invalid price:', formData.basePrice);
+      return false;
+    }
+
+    if (!formData.dateFrom || !formData.dateTo) {
+      console.error('Missing dates');
+      return false;
+    }
+
+    return true;
+  }
+
+  // /src/view/point-edit-view.js
   #collectFormData() {
-    if (this.#isDestroyed || !this.element) {
-      return null;
-    }
+    console.log('🔍 Collecting form data...');
 
-    const destinationInput = this.element.querySelector('.event__input--destination');
-    const priceInput = this.element.querySelector('.event__input--price');
-    const dateFromInput = this.element.querySelector('#event-start-time-1');
-    const dateToInput = this.element.querySelector('#event-end-time-1');
-
-    if (!destinationInput || !priceInput) {
-      console.error('Form fields not found');
-      return null;
-    }
-
-    const destinationName = destinationInput.value.trim();
-    const priceValue = priceInput.value;
-
-    const destination = this.#destinationsData.find((d) =>
-      d.name.toLowerCase() === destinationName.toLowerCase()
-    );
-
-    if (!destination) {
-      this.#showDestinationError(destinationInput, `"${destinationName}" не найден. Выберите из списка.`);
-      destinationInput.focus();
-      return null;
-    }
-
-    const price = parseInt(priceValue, 10);
-    if (isNaN(price) || price < 0) {
-      this.#showPriceError(priceInput, 'Введите корректную цену (больше или равно 0)');
-      priceInput.focus();
-      return null;
-    }
-
-    let dateFrom = this._state.dateFrom;
-    let dateTo = this._state.dateTo;
-
-    if (this.#dateFromPicker && this.#dateFromPicker.selectedDates[0]) {
-      dateFrom = this.#dateFromPicker.selectedDates[0].toISOString();
-    } else if (dateFromInput && dateFromInput.value) {
-      try {
-        dateFrom = parseFlatpickrDate(dateFromInput.value);
-      } catch (error) {
-        console.error('Error parsing dateFrom:', error);
+    // Получаем значение из поля типа
+    const typeRadios = this.element.querySelectorAll('.event__type-input');
+    let selectedType = 'flight';
+    typeRadios.forEach((radio) => {
+      if (radio.checked) {
+        selectedType = radio.value;
       }
-    }
+    });
 
-    if (this.#dateToPicker && this.#dateToPicker.selectedDates[0]) {
-      dateTo = this.#dateToPicker.selectedDates[0].toISOString();
-    } else if (dateToInput && dateToInput.value) {
-      try {
-        dateTo = parseFlatpickrDate(dateToInput.value);
-      } catch (error) {
-        console.error('Error parsing dateTo:', error);
-      }
-    }
-
-    if (!dateFrom || !dateTo || new Date(dateTo) <= new Date(dateFrom)) {
-      alert('Выберите корректные даты. Дата окончания должна быть позже даты начала.');
-      return null;
-    }
-
-    return {
+    // Собираем все данные
+    const formData = {
       id: this._state.id,
-      basePrice: price,
-      dateFrom: dateFrom,
-      dateTo: dateTo,
-      destination: destination.id,
-      isFavorite: this._state.isFavorite,
-      offers: this._state.offers,
-      type: this._state.type,
+      basePrice: Number(this._state.basePrice) || 0,
+      dateFrom: this._state.dateFrom,
+      dateTo: this._state.dateTo,
+      destination: this._state.destination,
+      isFavorite: this._state.isFavorite || false, // ✅
+      offers: this._state.offers || [], // ✅
+      type: selectedType || 'flight', // ✅
     };
+
+    console.log('✅ Collected ALL form data:', formData);
+    return formData;
   }
 
   #validateForm() {
@@ -791,6 +794,16 @@ export default class PointEditView extends AbstractStatefulView {
     const currentTypeOffers = this.#offersData.find((offer) => offer.type === type);
     const availableOffers = currentTypeOffers ? currentTypeOffers.offers : [];
 
+    // Фильтруем выбранные offers, чтобы убрать некорректные
+    const validOffers = state.offers.filter((offerId) =>
+      availableOffers.some((offer) => offer.id === offerId)
+    );
+
+    // Если offers не соответствуют типу, сбрасываем их
+    if (validOffers.length !== state.offers.length) {
+      console.warn('Некоторые offers не соответствуют типу точки, сбрасываем...');
+      this._setState({ offers: validOffers });
+    }
     const offersTemplate = availableOffers.map((offer) => `
       <div class="event__offer-selector">
         <input class="event__offer-checkbox visually-hidden"

@@ -1,13 +1,14 @@
 // /src/presenter/new-point-presenter.js
 import PointEditView from '../view/point-edit-view.js';
 import { render, remove } from '../framework/render.js';
-import { UserAction } from '../const.js';
+import { UserAction, UpdateType } from '../const.js'; // <-- ДОБАВЬТЕ UpdateType
 import { isEscEvent } from '../utils/utils.js';
 
 export default class NewPointPresenter {
   #container = null;
   #destinationsModel = null;
   #offersModel = null;
+  #pointsModel = null; // <-- ДОБАВЛЯЕМ ССЫЛКУ НА МОДЕЛЬ ТОЧЕК
   #handleDataChange = null;
   #handleDestroy = null;
 
@@ -17,14 +18,21 @@ export default class NewPointPresenter {
     container,
     destinationsModel,
     offersModel,
+    pointsModel, // <-- ДОБАВЬТЕ ЭТОТ ПАРАМЕТР
     onDataChange,
     onDestroy
   }) {
     this.#container = container;
     this.#destinationsModel = destinationsModel;
     this.#offersModel = offersModel;
+    this.#pointsModel = pointsModel; // <-- ТЕПЕРЬ ПЕРЕДАЕТСЯ
     this.#handleDataChange = onDataChange;
     this.#handleDestroy = onDestroy;
+
+    // ПОДПИСЫВАЕМСЯ НА ИЗМЕНЕНИЯ В МОДЕЛИ
+    if (this.#pointsModel) {
+      this.#pointsModel.addObserver(this.#handleModelEvent);
+    }
   }
 
   init() {
@@ -50,33 +58,122 @@ export default class NewPointPresenter {
     document.addEventListener('keydown', this.#escKeyDownHandler);
   }
 
+  // /src/presenter/new-point-presenter.js
+
+  // ОБРАБОТЧИК ИЗМЕНЕНИЙ МОДЕЛИ
+  // /src/presenter/new-point-presenter.js
+
+  #handleModelEvent = (updateType, payload) => {
+    console.log('📬 NewPointPresenter received model event:', updateType);
+
+    // ЗАКРЫВАЕМ ФОРМУ ТОЛЬКО ПОСЛЕ УСПЕШНОГО СОХРАНЕНИЯ
+    if (updateType === UpdateType.MAJOR || updateType === UpdateType.MINOR) {
+      console.log('✅ Point operation successful, destroying form');
+
+      // Небольшая задержка для визуального подтверждения
+      setTimeout(() => {
+        if (this.#pointEditComponent) {
+          this.destroy();
+        }
+      }, 500);
+    }
+
+    // Обработка ошибок
+    if (updateType === UpdateType.INIT && payload?.error) {
+      console.error('❌ Failed to save point:', payload.error);
+      this.setAborting();
+    }
+  };
+
+  // /src/presenter/new-point-presenter.js
   #createBlankPoint() {
     const destinations = this.#destinationsModel.getDestinations();
     const offers = this.#offersModel.getOffers();
 
-    // Берем первое направление и первый тип offers
+    // Берем первое направление
     const firstDestination = destinations.length > 0 ? destinations[0].id : null;
-    const firstOfferType = offers.length > 0 ? offers[0].type : 'flight';
+
+    // ЯВНО устанавливаем тип
+    const defaultType = 'flight'; // Или 'taxi', но нужно убедиться что тип существует
 
     const now = new Date();
-    const oneHourLater = new Date(now.getTime() + 3600000);
+    const twoHoursLater = new Date(now.getTime() + 7200000); // 2 часа позже
 
     return {
-      id: null, // Будет сгенерирован в модели
-      basePrice: 100, // Начальная цена не 0
+      id: null,
+      basePrice: 100,
       dateFrom: now.toISOString(),
-      dateTo: oneHourLater.toISOString(),
-      destination: firstDestination, // Ставим первое направление
-      isFavorite: false,
-      offers: [],
-      type: firstOfferType,
+      dateTo: twoHoursLater.toISOString(),
+      destination: firstDestination,
+      isFavorite: false, // ✅ ЯВНО устанавливаем
+      offers: [], // ✅ ЯВНО устанавливаем (пустой массив)
+      type: defaultType, // ✅ ЯВНО устанавливаем тип
     };
   }
 
+  #handleFormSubmit = async (point) => {
+    console.log('📝 New point form submitted (FULL):', point);
+
+    // ДОБАВЬТЕ ЭТУ ПРОВЕРКУ
+    console.log('🔍 Проверка полей в точке:');
+    console.log('- type:', point.type);
+    console.log('- destination:', point.destination);
+    console.log('- basePrice:', point.basePrice);
+    console.log('- isFavorite:', point.isFavorite);
+    console.log('- offers:', point.offers);
+    console.log('- dateFrom:', point.dateFrom);
+    console.log('- dateTo:', point.dateTo);
+
+    if (!this.#validatePoint(point)) {
+      this.setAborting();
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    this.setSaving();
+
+    try {
+    // ВАЖНО: Убедитесь, что все поля есть!
+      const pointToSend = {
+        basePrice: Number(point.basePrice) || 100,
+        dateFrom: point.dateFrom,
+        dateTo: point.dateTo,
+        destination: point.destination,
+        isFavorite: point.isFavorite !== undefined ? point.isFavorite : false, // ✅
+        offers: point.offers || [], // ✅
+        type: point.type || 'flight', // ✅
+      };
+
+      console.log('📤 FINAL point to send (with ALL fields):', pointToSend);
+
+      await this.#handleDataChange(UserAction.ADD_POINT, pointToSend);
+
+    } catch (error) {
+      console.error('❌ Failed to create point:', error);
+      this.setAborting();
+
+      if (error.message.includes('400')) {
+        alert('Server rejected the point. Make sure:\n1. Type is selected\n2. Destination is valid\n3. Price is positive\n4. All required fields are present');
+      } else {
+        alert(`Failed to create point: ${error.message}`);
+      }
+    }
+  };
+
   destroy() {
+    console.log('🗑️ NewPointPresenter.destroy() called');
+
+    // ОТПИСЫВАЕМСЯ ОТ МОДЕЛИ
+    if (this.#pointsModel) {
+      this.#pointsModel.removeObserver(this.#handleModelEvent);
+    }
+
     if (!this.#pointEditComponent) {
       return;
     }
+
+    // Сбрасываем состояние кнопок перед уничтожением
+    this.resetButtons();
 
     document.removeEventListener('keydown', this.#escKeyDownHandler);
     remove(this.#pointEditComponent);
@@ -85,6 +182,63 @@ export default class NewPointPresenter {
     if (this.#handleDestroy) {
       this.#handleDestroy();
     }
+
+    console.log('✅ NewPointPresenter destroyed successfully');
+  }
+
+  // Добавьте метод для сброса кнопок
+  resetButtons() {
+    if (!this.#pointEditComponent) {
+      return;
+    }
+
+    const saveButton = this.#pointEditComponent.element?.querySelector('.event__save-btn');
+    const resetButton = this.#pointEditComponent.element?.querySelector('.event__reset-btn');
+    const rollupButton = this.#pointEditComponent.element?.querySelector('.event__rollup-btn');
+
+    if (saveButton) {
+      saveButton.textContent = 'Save';
+      saveButton.disabled = false;
+    }
+
+    if (resetButton) {
+      resetButton.textContent = 'Delete';
+      resetButton.disabled = false;
+    }
+
+    if (rollupButton) {
+      rollupButton.disabled = false;
+    }
+  }
+
+
+  #validatePoint(point) {
+  // Проверяем обязательные поля
+    if (!point.destination) {
+      console.error('Missing destination');
+      return false;
+    }
+
+    if (!point.type) {
+      console.error('Missing type');
+      return false;
+    }
+
+    const price = Number(point.basePrice);
+    if (isNaN(price) || price <= 0) {
+      console.error('Invalid price:', price);
+      return false;
+    }
+
+    // Проверяем даты
+    const dateFrom = new Date(point.dateFrom);
+    const dateTo = new Date(point.dateTo);
+    if (dateTo <= dateFrom) {
+      console.error('Invalid dates: end before start');
+      return false;
+    }
+
+    return true;
   }
 
   setSaving() {
@@ -103,54 +257,6 @@ export default class NewPointPresenter {
     this.#pointEditComponent.setAborting();
   }
 
-  #handleFormSubmit = async (point) => {
-    // ПРОВЕРКА ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
-    if (!this.#validatePoint(point)) {
-      alert('Please fill in all required fields: destination and price (must be positive)');
-      this.#pointEditComponent.setAborting();
-      return;
-    }
-
-    // Форматируем данные для передачи в модель
-    const pointToSend = {
-      id: null, // Модель сама сгенерирует ID
-      basePrice: Number(point.basePrice),
-      dateFrom: point.dateFrom,
-      dateTo: point.dateTo,
-      destination: point.destination,
-      isFavorite: point.isFavorite || false,
-      offers: point.offers || [],
-      type: point.type || 'flight',
-    };
-
-    try {
-      await this.#handleDataChange(UserAction.ADD_POINT, pointToSend);
-    } catch (error) {
-      console.error('❌ Failed to add point:', error);
-      this.setAborting();
-    }
-  };
-
-  #validatePoint(point) {
-    // Проверяем обязательные поля
-    if (!point.destination) {
-      return false;
-    }
-
-    const price = Number(point.basePrice);
-    if (isNaN(price) || price < 0) {
-      return false;
-    }
-
-    // Проверяем даты
-    const dateFrom = new Date(point.dateFrom);
-    const dateTo = new Date(point.dateTo);
-    if (dateTo <= dateFrom) {
-      return false;
-    }
-
-    return true;
-  }
 
   #handleDeleteClick = () => {
     this.destroy();
