@@ -847,7 +847,7 @@ export default class PointEditView extends AbstractStatefulView {
                      value="${basePrice}"
                      min="0"
                      step="1"
-                     pattern="\d*"
+                     pattern="\\d*"
                      inputmode="numeric"
                      placeholder="0"
                      required>

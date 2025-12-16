@@ -17,7 +17,6 @@ export default class DestinationsModel extends Observable {
       const destinations = await this.#apiService.getDestinations();
       this.#destinations = DestinationsAdapter.adaptToClient(destinations);
     } catch (err) {
-      console.error('Failed to load destinations:', err);
       this.#destinations = [];
       throw new Error('Failed to load destinations');
     }

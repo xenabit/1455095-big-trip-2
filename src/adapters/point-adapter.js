@@ -16,11 +16,11 @@ export default class PointAdapter {
 
     const serverPoint = {
       id: clientPoint.id,
-      base_price: Number(clientPoint.basePrice) || 0,
-      date_from: clientPoint.dateFrom,
-      date_to: clientPoint.dateTo,
+      base_price: Number(clientPoint.basePrice) || 0, // eslint-disable-line camelcase
+      date_from: clientPoint.dateFrom, // eslint-disable-line camelcase
+      date_to: clientPoint.dateTo, // eslint-disable-line camelcase
       destination: clientPoint.destination,
-      is_favorite: Boolean(clientPoint.isFavorite),
+      is_favorite: Boolean(clientPoint.isFavorite), // eslint-disable-line camelcase
       offers: clientPoint.offers || [],
       type: clientPoint.type || 'flight',
     };

@@ -24,11 +24,8 @@ const isPresentPoint = (point, now) => {
 
 const isPastPoint = (point, now) => dayjs(point.dateTo).isBefore(now);
 
-// Основная функция фильтрации
 export const filterPoints = (points, filterType) => {
-  // 1. Проверяем входные данные
   if (!Array.isArray(points)) {
-    console.error('filterPoints: points must be an array', points);
     return [];
   }
 
@@ -36,11 +33,9 @@ export const filterPoints = (points, filterType) => {
     return [];
   }
 
-  // 2. Нормализуем точки (приводим к единому формату)
   const normalizedPoints = normalizePoints(points);
   const now = dayjs();
 
-  // 3. Применяем фильтр
   switch (filterType) {
     case FilterType.EVERYTHING:
       return normalizedPoints;
@@ -55,21 +50,13 @@ export const filterPoints = (points, filterType) => {
       return normalizedPoints.filter((point) => isPastPoint(point, now));
 
     default:
-      console.warn(`Unknown filter type: ${filterType}. Returning all points.`);
       return normalizedPoints;
   }
 };
 
-// Для отладки
 export const debugFilter = (points, filterType) => {
-  console.group('🔍 Filter Debug');
-  console.log('Input points:', points);
-  console.log('Filter type:', filterType);
 
   const filtered = filterPoints(points, filterType);
-  console.log('Filtered result:', filtered);
-  console.log('Filtered count:', filtered.length);
 
-  console.groupEnd();
   return filtered;
 };

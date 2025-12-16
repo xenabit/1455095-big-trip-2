@@ -1,5 +1,3 @@
-// /src/presenter/point-presenter.js
-
 import PointEditView from '/src/view/point-edit-view.js';
 import PointItemView from '/src/view/point-item-view.js';
 import { Mode, UserAction } from '/src/const.js';
@@ -35,20 +33,11 @@ export default class PointPresenter {
   }
 
   init(point) {
-    console.log('🎯 PointPresenter init called with point:', point);
 
     this.#point = point;
 
     const prevPointComponent = this.#pointComponent;
     const prevPointEditComponent = this.#pointEditComponent;
-
-    // ДЕБАГ: Проверяем данные
-    console.log('📍 Destination ID:', point.destination);
-    console.log('💰 Base Price:', point.basePrice);
-    console.log('📅 Date From:', point.dateFrom);
-    console.log('📅 Date To:', point.dateTo);
-    console.log('⭐ Is Favorite:', point.isFavorite);
-    console.log('🛠️ Offers:', point.offers);
 
     this.#pointComponent = new PointItemView(
       {
@@ -122,56 +111,25 @@ export default class PointPresenter {
   };
 
 
-  // /src/presenter/point-presenter.js
-
-  // /src/presenter/point-presenter.js
-
   #handleFormSubmit = async (updatedPoint) => {
-    console.log('📝 Point form submitted:', updatedPoint);
-
-    // Устанавливаем состояние "сохранение"
     this.#pointEditComponent?.setSaving();
 
     try {
-    // Отправляем обновление
       await this.#handlePointChange(UserAction.UPDATE_POINT, updatedPoint);
 
-      console.log('✅ Form submitted successfully');
-      // Форма закроется через handleModelEvent когда модель уведомит об успешном обновлении
-
     } catch (error) {
-      console.error('❌ Update failed:', error);
-
-      // Возвращаем кнопкам обычное состояние
       this.#pointEditComponent?.setAborting();
-
-      // Показываем сообщение об ошибке
-      alert('Failed to save changes. Please try again.');
     }
   };
 
 
   #handleDeleteClick = async (point) => {
-    console.log('🗑️ Delete button clicked for point:', point?.id || this.#point.id);
-
-    // Устанавливаем состояние "удаление"
     this.#pointEditComponent?.setDeleting();
 
     try {
-    // Отправляем запрос на удаление
       await this.#handlePointChange(UserAction.DELETE_POINT, point || this.#point);
-
-      console.log('✅ Delete request sent successfully');
-      // Форма закроется через handleModelEvent когда модель уведомит об успешном удалении
-
     } catch (error) {
-      console.error('❌ Failed to delete point:', error);
-
-      // Возвращаем кнопкам обычное состояние
       this.#pointEditComponent?.setAborting();
-
-      // Показываем сообщение об ошибке
-      alert('Failed to delete point. Please try again.');
     }
   };
 
@@ -182,7 +140,6 @@ export default class PointPresenter {
   }
 
   #handleFavoriteClick = () => {
-    console.log('⭐ Toggling favorite for point:', this.#point.id);
     const updatedPoint = {
       ...this.#point,
       isFavorite: !this.#point.isFavorite
@@ -198,13 +155,11 @@ export default class PointPresenter {
     }
   };
 
-  // Метод для обновления точки в ответ на изменение модели
   updatePoint(updatedPoint) {
     if (this.#point.id !== updatedPoint.id) {
       return;
     }
 
-    console.log('🔄 Updating point in presenter:', updatedPoint);
     this.#point = updatedPoint;
     this.init(updatedPoint);
   }

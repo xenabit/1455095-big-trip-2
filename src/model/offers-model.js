@@ -17,7 +17,6 @@ export default class OffersModel extends Observable {
       const offers = await this.#apiService.getOffers();
       this.#offers = OffersAdapter.adaptToClient(offers);
     } catch (err) {
-      console.error('Failed to load offers:', err);
       this.#offers = [];
       throw new Error('Failed to load offers');
     }
