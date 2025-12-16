@@ -44,6 +44,7 @@ export default class PointPresenter {
         pointData: this.#point,
         destinationsData: this.#destinationsModel.getDestinations(),
         offersData: this.#offersModel.getOffers(),
+        isNewPoint: false
       },
       this.#handleRollupClick,
       this.#handleFavoriteClick
