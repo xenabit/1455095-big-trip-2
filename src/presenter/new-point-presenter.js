@@ -103,7 +103,7 @@ export default class NewPointPresenter {
     this.#pointEditComponent.setAborting();
   }
 
-  #handleFormSubmit = (point) => {
+  #handleFormSubmit = async (point) => {
     // ПРОВЕРКА ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
     if (!this.#validatePoint(point)) {
       alert('Please fill in all required fields: destination and price (must be positive)');
@@ -123,7 +123,12 @@ export default class NewPointPresenter {
       type: point.type || 'flight',
     };
 
-    this.#handleDataChange(UserAction.ADD_POINT, pointToSend);
+    try {
+      await this.#handleDataChange(UserAction.ADD_POINT, pointToSend);
+    } catch (error) {
+      console.error('❌ Failed to add point:', error);
+      this.setAborting();
+    }
   };
 
   #validatePoint(point) {

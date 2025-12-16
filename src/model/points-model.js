@@ -1,5 +1,3 @@
-// /src/model/points-model.js
-
 import Observable from '../framework/observable.js';
 import PointAdapter from '../adapters/point-adapter.js';
 import { UpdateType } from '../const.js';
@@ -50,6 +48,8 @@ export default class PointsModel extends Observable {
 
 
   async updatePoint(updateType, updatedPoint) {
+    console.log('🔄 Model: Starting point update for:', updatedPoint.id);
+
     if (!updatedPoint || !updatedPoint.id) {
       throw new Error('Invalid point data: missing id');
     }
@@ -61,21 +61,77 @@ export default class PointsModel extends Observable {
     }
 
     try {
+      // 1. Преобразуем данные в формат сервера
       const serverPoint = PointAdapter.adaptToServer(updatedPoint);
-      const response = await this.#apiService.updatePoint(serverPoint);
-      const adaptedPoint = PointAdapter.adaptToClient(response);
+      console.log('📤 Model: Sending to server:', serverPoint);
 
+      // 2. Отправляем запрос на сервер
+      const response = await this.#apiService.updatePoint(serverPoint);
+      console.log('✅ Model: Server response:', response);
+
+      // 3. Преобразуем ответ сервера обратно в формат приложения
+      const adaptedPoint = PointAdapter.adaptToClient(response);
+      console.log('🔄 Model: Adapted from server:', adaptedPoint);
+
+      console.log('🔄 Model: Starting point update for:', updatedPoint.id);
+
+      // Валидация данных
+      if (!this.#validatePointData(updatedPoint)) {
+        throw new Error('Invalid point data');
+      }
+
+
+      // 4. Обновляем данные в модели
       this.#points = [
         ...this.#points.slice(0, index),
         adaptedPoint,
         ...this.#points.slice(index + 1)
       ];
 
+      console.log('✅ Model: Points updated locally');
+
+      // 5. Уведомляем подписчиков об успешном обновлении
       this._notify(updateType, adaptedPoint);
+
     } catch (err) {
-      console.error('Failed to update point:', err);
-      throw new Error('Failed to update point');
+      console.error('❌ Model: Failed to update point:', err);
+      throw new Error('Failed to update point on server');
     }
+  }
+
+
+  #validatePointData(point) {
+    if (!point || typeof point !== 'object') {
+      console.error('Point is not an object');
+      return false;
+    }
+
+    if (!point.id) {
+      console.error('Point missing id');
+      return false;
+    }
+
+    if (typeof point.basePrice !== 'number' || point.basePrice < 0) {
+      console.error('Invalid basePrice:', point.basePrice);
+      return false;
+    }
+
+    if (!point.dateFrom || !point.dateTo) {
+      console.error('Missing dates');
+      return false;
+    }
+
+    if (!point.destination) {
+      console.error('Missing destination');
+      return false;
+    }
+
+    if (!point.type) {
+      console.error('Missing type');
+      return false;
+    }
+
+    return true;
   }
 
   async addPoint(updateType, newPoint) {

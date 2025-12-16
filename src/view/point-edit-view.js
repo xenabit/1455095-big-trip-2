@@ -53,6 +53,34 @@ export default class PointEditView extends AbstractStatefulView {
     return this.#createTemplate(this._state);
   }
 
+  // /src/view/point-edit-view.js
+
+  // Добавляем метод для отображения состояния ошибки
+  setAborting() {
+    if (this.#isDestroyed) {
+      return;
+    }
+
+    const saveButton = this.element?.querySelector('.event__save-btn');
+    const resetButton = this.element?.querySelector('.event__reset-btn');
+
+    if (saveButton) {
+      saveButton.textContent = 'Save';
+      saveButton.disabled = false;
+    }
+
+    if (resetButton) {
+      resetButton.textContent = 'Delete';
+      resetButton.disabled = false;
+    }
+
+    // Добавляем анимацию или сообщение об ошибке
+    this.shake(() => {
+    // Можно показать сообщение об ошибке
+      this.#showQuickError('Failed to save changes. Please try again.');
+    });
+  }
+
   removeElement() {
     this.#isDestroyed = true;
 

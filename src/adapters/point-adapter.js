@@ -5,11 +5,7 @@ export default class PointAdapter {
    * Адаптирует данные с сервера к формату приложения
    */
   static adaptToClient(point) {
-    if (!point) {
-      return null;
-    }
-
-    return {
+    const adaptedPoint = {
       id: point.id,
       basePrice: point.base_price,
       dateFrom: point.date_from,
@@ -19,6 +15,8 @@ export default class PointAdapter {
       offers: point.offers || [],
       type: point.type,
     };
+
+    return adaptedPoint;
   }
 
   /**
@@ -29,7 +27,7 @@ export default class PointAdapter {
       return null;
     }
 
-    return {
+    const adaptedPoint = {
       'id': point.id,
       'base_price': Number(point.basePrice) || 0,
       'date_from': point.dateFrom,
@@ -39,5 +37,7 @@ export default class PointAdapter {
       'offers': Array.isArray(point.offers) ? point.offers : [],
       'type': point.type || 'flight',
     };
+
+    return adaptedPoint;
   }
 }

@@ -45,10 +45,9 @@ export default class Presenter {
   }
 
   async init() {
+    console.log('🎬 Presenter init started');
     // Инициализируем кнопку New Event из существующей разметки
     this.#initExistingNewEventButton();
-
-
     this.#showLoading();
 
     // Инициализируем кнопку New Event
@@ -191,15 +190,20 @@ export default class Presenter {
     }
   }
 
-  #handleViewAction = (actionType, payload) => {
+  #handleViewAction = async (actionType, payload) => {
     console.log(`🎯 View action: ${actionType}`, payload);
-    console.log(`📊 Payload type: ${typeof payload}`, payload?.constructor?.name);
-    console.log('🔍 Payload keys:', payload ? Object.keys(payload) : 'null');
 
     switch (actionType) {
       case UserAction.UPDATE_POINT:
-        console.log('🔄 Updating point:', payload);
-        this.#pointsModel.updatePoint(UpdateType.MINOR, payload);
+        console.log('🔄 Presenter: Updating point...');
+        try {
+          await this.#pointsModel.updatePoint(UpdateType.MINOR, payload);
+          console.log('✅ Presenter: Point updated successfully');
+        } catch (error) {
+          console.error('❌ Presenter: Update failed:', error);
+          // Нужно уведомить PointPresenter об ошибке
+          this.#handleUpdateError(payload.id, error);
+        }
         break;
       case UserAction.ADD_POINT:
         console.log('➕ Adding point:', payload);
@@ -218,6 +222,15 @@ export default class Presenter {
         break;
       default:
         throw new Error(`Unknown action type: ${actionType}`);
+    }
+  };
+
+  #handleUpdateError = (pointId, error) => {
+  // Находим презентер точки и уведомляем об ошибке
+    const pointPresenter = this.#pointPresenters.get(pointId);
+    if (pointPresenter) {
+    // Нужно добавить метод в PointPresenter для обработки ошибок
+      pointPresenter.setAborting();
     }
   };
 
