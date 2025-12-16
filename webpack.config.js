@@ -1,5 +1,5 @@
 const path = require('path');
-const CopyPlugin  = require('copy-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 const HtmlPlugin = require('html-webpack-plugin');
 
 module.exports = {
@@ -10,16 +10,6 @@ module.exports = {
     clean: true,
   },
   devtool: 'source-map',
-  mode: 'development',  // Добавлено
-  devServer: {          // Добавлено
-    static: {
-      directory: path.resolve(__dirname, 'build'),
-    },
-    compress: true,
-    port: 8080,
-    hot: true,  // Включает горячую перезагрузку (HMR)
-    open: true, // Открывает браузер при запуске сервера
-  },
   plugins: [
     new HtmlPlugin({
       template: 'public/index.html',
@@ -51,6 +41,6 @@ module.exports = {
         test: /\.css$/i,
         use: ['style-loader', 'css-loader']
       },
-    ],
-  },
+    ]
+  }
 };

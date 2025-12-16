@@ -1,36 +1,43 @@
-import FilterView from '../view/filter-view.js';
-import { FilterType, UpdateType } from '../const.js';
 import { render, replace, remove } from '../framework/render.js';
-import { DataAdapter } from '../utils/data-adapter.js';
+import FilterView from '../view/filters-view.js';
+import { filter } from '../utils/filter.js';
+import { FilterType, UpdateType } from '../const.js';
+
 
 export default class FilterPresenter {
-  #container = null;
+  #filterContainer = null;
   #filterModel = null;
   #pointsModel = null;
-
   #filterComponent = null;
 
-  constructor({ container, filterModel, pointsModel }) {
-    this.#container = container;
+  constructor({filterContainer, filterModel, pointsModel}) {
+    this.#filterContainer = filterContainer;
     this.#filterModel = filterModel;
     this.#pointsModel = pointsModel;
 
-    this.#filterModel.addObserver(this.#handleModelEvent);
     this.#pointsModel.addObserver(this.#handleModelEvent);
+    this.#filterModel.addObserver(this.#handleModelEvent);
+  }
+
+  get filters() {
+    const points = this.#pointsModel.points;
+    return Object.values(FilterType).map((type) => ({
+      type,
+      count: filter[type](points).length
+    }));
   }
 
   init() {
-    const filters = this.#getFilters();
+    const filters = this.filters;
     const prevFilterComponent = this.#filterComponent;
-
     this.#filterComponent = new FilterView({
       filters,
       currentFilterType: this.#filterModel.filter,
       onFilterTypeChange: this.#handleFilterTypeChange
     });
 
-    if (!prevFilterComponent) {
-      render(this.#filterComponent, this.#container);
+    if (prevFilterComponent === null) {
+      render(this.#filterComponent, this.#filterContainer);
       return;
     }
 
@@ -47,43 +54,6 @@ export default class FilterPresenter {
       return;
     }
 
-    this.#filterModel.setFilter(UpdateType.MAJOR, filterType);
+    this.#filterModel.setFilter(UpdateType.MINOR, filterType);
   };
-
-
-  #getFilters() {
-    const points = this.#pointsModel.getPoints();
-    const now = new Date();
-
-    const normalizedPoints = points.map((point) => DataAdapter.forSorting(point));
-
-    return [
-      {
-        type: FilterType.EVERYTHING,
-        name: 'Everything',
-        count: normalizedPoints.length
-      },
-      {
-        type: FilterType.FUTURE,
-        name: 'Future',
-        count: normalizedPoints.filter((point) => new Date(point.dateFrom) > now).length
-      },
-      {
-        type: FilterType.PRESENT,
-        name: 'Present',
-        count: normalizedPoints.filter((point) =>
-          new Date(point.dateFrom) <= now && new Date(point.dateTo) >= now
-        ).length
-      },
-      {
-        type: FilterType.PAST,
-        name: 'Past',
-        count: normalizedPoints.filter((point) => new Date(point.dateTo) < now).length
-      }
-    ];
-  }
-
-  destroy() {
-    remove(this.#filterComponent);
-  }
 }

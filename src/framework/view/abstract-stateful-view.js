@@ -2,6 +2,7 @@ import AbstractView from './abstract-view.js';
 
 /**
  * Абстрактный класс представления с состоянием
+ * @abstract
  */
 export default class AbstractStatefulView extends AbstractView {
   /** @type {Object} Объект состояния */

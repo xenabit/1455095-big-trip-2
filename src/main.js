@@ -1,71 +1,76 @@
+import BoardPresenter from './presenter/board-presenter.js';
 import PointsModel from './model/points-model.js';
-import DestinationsModel from './model/destinations-model.js';
-import OffersModel from './model/offers-model.js';
 import FilterModel from './model/filter-model.js';
 import FilterPresenter from './presenter/filter-presenter.js';
-import Presenter from './presenter/presenter.js';
-import PointsApiService from './services/api-service.js';
+import TripInfoPresenter from './presenter/trip-info-presenter.js';
+import NewPointButtonPresenter from './presenter/new-point-button-presenter.js';
+import PointsApiService from './points-api-service.js';
 
-const AUTHORIZATION = 'Basic eo0w590ik29889a';
+const AUTHORIZATION = 'Basic er989jdzbVv';
 const END_POINT = 'https://22.objects.htmlacademy.pro/big-trip';
 
-const apiService = new PointsApiService(END_POINT, AUTHORIZATION);
+class App {
+  #pointsModel = null;
+  #filterModel = null;
+  #boardPresenter = null;
+  #filterPresenter = null;
+  #tripInfoPresenter = null;
+  #newEventButtonPresenter = null;
+  #pointsApiService = null;
 
-const pointsModel = new PointsModel(apiService);
-const destinationsModel = new DestinationsModel(apiService);
-const offersModel = new OffersModel(apiService);
-const filterModel = new FilterModel();
+  constructor() {
+    this.#pointsApiService = new PointsApiService(END_POINT, AUTHORIZATION);
+    this.#pointsModel = new PointsModel({
+      pointsApiService: this.#pointsApiService
+    });
+    this.#filterModel = new FilterModel();
+  }
 
+  async init() {
+    this.#initComponents();
 
-const loadData = async () => {
-  const initPresenters = () => {
-    const filterPresenter = new FilterPresenter({
-      container: document.querySelector('.trip-controls__filters'),
-      filterModel,
-      pointsModel
+    try {
+      await this.#pointsModel.init();
+      this.#newEventButtonPresenter.init();
+    } catch (error) {
+      document.querySelector('.trip-events__msg').textContent = error.message;
+    }
+  }
+
+  #initComponents() {
+    const siteHeaderElement = document.querySelector('.page-header');
+    const tripHeaderElement = siteHeaderElement.querySelector('.trip-main');
+    const pageMainElement = document.querySelector('.page-main');
+    const mainContainer = pageMainElement.querySelector('.page-body__container');
+
+    this.#tripInfoPresenter = new TripInfoPresenter({
+      infoContainer: tripHeaderElement,
+      pointsModel: this.#pointsModel,
+      filterModel: this.#filterModel,
     });
 
-    const presenter = new Presenter({
-      pointsModel,
-      destinationsModel,
-      offersModel,
-      filterModel
+    this.#filterPresenter = new FilterPresenter({
+      filterContainer: tripHeaderElement,
+      filterModel: this.#filterModel,
+      pointsModel: this.#pointsModel
     });
 
-    filterPresenter.init();
-    presenter.init();
+    this.#boardPresenter = new BoardPresenter({
+      boardContainer: mainContainer,
+      pointsModel: this.#pointsModel,
+      filterModel: this.#filterModel,
+    });
 
-    window.presenter = presenter;
-    window.models = { pointsModel, filterModel };
-  };
+    this.#newEventButtonPresenter = new NewPointButtonPresenter({
+      boardPresenter: this.#boardPresenter,
+      containerElement: tripHeaderElement
+    });
 
-  try {
-    await Promise.all([
-      destinationsModel.init(),
-      offersModel.init(),
-      pointsModel.init()
-    ]);
-
-    initPresenters();
-
-  } catch (error) {
-    initPresenters();
+    this.#tripInfoPresenter.init();
+    this.#filterPresenter.init();
+    this.#boardPresenter.init();
   }
-};
+}
 
-
-const showLoadingMessage = () => {
-  const eventsSection = document.querySelector('.trip-events');
-  if (eventsSection) {
-    eventsSection.innerHTML = `
-      <p class="trip-events__msg">Loading...</p>
-    `;
-  }
-};
-
-const init = async () => {
-  showLoadingMessage();
-  await loadData();
-};
-
-init();
+const app = new App();
+app.init();

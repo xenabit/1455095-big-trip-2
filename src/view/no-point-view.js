@@ -1,23 +1,23 @@
 import AbstractView from '../framework/view/abstract-view.js';
 
-function createTemplate(message) {
-  return `
-    <section class="trip-events">
-      <h2 class="visually-hidden">Trip events</h2>
-      <p class="trip-events__msg">${message}</p>
-    </section>
-  `;
+function createNoPointTemplate(noPointsText) {
+  return (
+    `<p class="trip-events__msg">
+      ${noPointsText}
+    </p>`
+  );
 }
 
 export default class NoPointView extends AbstractView {
-  #message = null;
+  #noPointsText = '';
 
-  constructor({ message }) {
+  constructor(noPointsText) {
     super();
-    this.#message = message;
+
+    this.#noPointsText = noPointsText;
   }
 
   get template() {
-    return createTemplate(this.#message);
+    return createNoPointTemplate(this.#noPointsText);
   }
 }

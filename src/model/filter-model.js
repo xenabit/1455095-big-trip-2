@@ -1,27 +1,15 @@
 import Observable from '../framework/observable.js';
-
-const FilterType = {
-  EVERYTHING: 'everything',
-  FUTURE: 'future',
-  PRESENT: 'present',
-  PAST: 'past'
-};
+import { FilterType } from '../const.js';
 
 export default class FilterModel extends Observable {
-  #currentFilter = FilterType.EVERYTHING;
+  #filter = FilterType.EVERYTHING;
 
   get filter() {
-    return this.#currentFilter;
+    return this.#filter;
   }
 
   setFilter(updateType, filter) {
-    if (!Object.values(FilterType).includes(filter)) {
-      throw new Error(`Invalid filter type: ${filter}`);
-    }
-
-    this.#currentFilter = filter;
+    this.#filter = filter;
     this._notify(updateType, filter);
   }
 }
-
-export { FilterType };

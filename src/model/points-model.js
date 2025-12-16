@@ -1,135 +1,125 @@
 import Observable from '../framework/observable.js';
-import PointAdapter from '../adapters/point-adapter.js';
 import { UpdateType } from '../const.js';
+import { isDatesEqual } from '../utils/date-utils.js';
 
-import { DataAdapter } from '../utils/data-adapter.js';
 export default class PointsModel extends Observable {
+  #pointsApiService = null;
   #points = [];
-  #apiService = null;
+  #destinations = [];
+  #offers = [];
 
-  constructor(apiService) {
+  constructor({pointsApiService}) {
     super();
-    this.#apiService = apiService;
+    this.#pointsApiService = pointsApiService;
+  }
+
+  get offers() {
+    return this.#offers;
+  }
+
+  get destinations() {
+    return this.#destinations;
+  }
+
+  get points() {
+    return this.#points;
   }
 
   async init() {
     try {
-      const serverPoints = await this.#apiService.getPoints();
+      const points = await this.#pointsApiService.points;
+      const offers = await this.#pointsApiService.offers;
+      const destination = await this.#pointsApiService.destinations;
+      this.#points = points.map(this.#adaptToClient);
+      this.#offers = offers;
+      this.#destinations = destination;
 
-      this.#points = serverPoints.map((serverPoint) =>
-        PointAdapter.adaptToClient(serverPoint)
-      );
-
-      this._notify(UpdateType.INIT, {});
-
-    } catch (err) {
+      this._notify(UpdateType.INIT);
+    } catch(err) {
       this.#points = [];
-      this._notify(UpdateType.INIT, { error: err });
-      throw new Error('Failed to load points');
+      this.#destinations = [];
+      this.#offers = [];
+
+      this._notify(UpdateType.ERROR);
     }
   }
 
-  getPoints() {
-    return this.#points.map((point) => DataAdapter.toClient(point));
-  }
-
-  async updatePoint(updateType, updatedPoint) {
-
-    const serverPoint = PointAdapter.adaptToServer(updatedPoint);
-
-    const index = this.#points.findIndex((point) => point.id === serverPoint.id);
+  async updatePoint(updateType, update) {
+    const index = this.#points.findIndex((point) => point.id === update.id);
 
     if (index === -1) {
-      throw new Error(`Point with id ${serverPoint.id} not found`);
+      throw new Error('Can\'t update unexisting point');
     }
 
     try {
-      const response = await this.#apiService.updatePoint(serverPoint);
-      const adaptedPoint = PointAdapter.adaptToClient(response);
+      const response = await this.#pointsApiService.updatePoint(update);
+      const updatedPoint = this.#adaptToClient(response);
+
+      const isMinorUpdate =
+        !isDatesEqual(this.#points[index].dateFrom, updatedPoint.dateFrom) ||
+        !isDatesEqual(this.#points[index].dateTo, updatedPoint.dateTo);
 
       this.#points = [
         ...this.#points.slice(0, index),
-        adaptedPoint,
-        ...this.#points.slice(index + 1)
+        updatedPoint,
+        ...this.#points.slice(index + 1),
       ];
 
-      this._notify(updateType, adaptedPoint);
+      updateType = isMinorUpdate ? UpdateType.MINOR : updateType;
 
-    } catch (err) {
-      throw new Error('Failed to update point on server');
+      this._notify(updateType, updatedPoint);
+    } catch(err) {
+      throw new Error('Can\'t update point');
     }
   }
 
-
-  #validatePointData(point) {
-    if (!point || typeof point !== 'object') {
-      return false;
-    }
-
-    if (!point.id) {
-      return false;
-    }
-
-    if (typeof point.basePrice !== 'number' || point.basePrice < 0) {
-      return false;
-    }
-
-    if (!point.dateFrom || !point.dateTo) {
-      return false;
-    }
-
-    if (!point.destination) {
-      return false;
-    }
-
-    if (!point.type) {
-      return false;
-    }
-
-    return true;
-  }
-
-  async addPoint(updateType, newPoint) {
-
+  async addPoint(updateType, update) {
     try {
-      const serverPoint = PointAdapter.adaptToServer(newPoint);
-
-      const response = await this.#apiService.addPoint(serverPoint);
-
-      const adaptedPoint = PointAdapter.adaptToClient(response);
-
-      this.#points = [...this.#points, adaptedPoint];
-
-      this._notify(updateType, adaptedPoint);
-
-      return adaptedPoint;
-
-    } catch (err) {
-      throw new Error(`Failed to add point: ${err.message}`);
+      const response = await this.#pointsApiService.addPoint(update);
+      const newPoint = this.#adaptToClient(response);
+      this.#points = [newPoint, ...this.#points];
+      this._notify(updateType, newPoint);
+    } catch(err) {
+      throw new Error('Can\'t add point');
     }
   }
 
-  async deletePoint(updateType, pointId) {
-
-    const index = this.#points.findIndex((point) => point.id === pointId);
+  async deletePoint(updateType, update) {
+    const index = this.#points.findIndex((point) => point.id === update.id);
 
     if (index === -1) {
-      throw new Error(`Point with id ${pointId} not found`);
+      throw new Error('Can\'t delete unexisting point');
     }
 
     try {
-      await this.#apiService.deletePoint(pointId);
-
+      await this.#pointsApiService.deletePoint(update);
       this.#points = [
         ...this.#points.slice(0, index),
-        ...this.#points.slice(index + 1)
+        ...this.#points.slice(index + 1),
       ];
-
-
-      this._notify(updateType, pointId);
-
-    } catch (err) {
-      throw new Error('Failed to delete point on server');
+      this._notify(updateType);
+    } catch(err) {
+      throw new Error('Can\'t delete point');
     }
+  }
+
+  #adaptToClient(point) {
+    const adaptedPoint = {...point,
+      id: point['id'],
+      basePrice: point['base_price'],
+      dateFrom: new Date(point['date_from']),
+      dateTo: new Date(point['date_to']),
+      destination: point['destination'],
+      isFavorite: point['is_favorite'],
+      offers: point['offers'],
+      type: point['type']
+    };
+
+    delete adaptedPoint['base_price'];
+    delete adaptedPoint['date_from'];
+    delete adaptedPoint['date_to'];
+    delete adaptedPoint['is_favorite'];
+
+    return adaptedPoint;
   }
 }

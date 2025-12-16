@@ -5,7 +5,6 @@
   "description": "Проект «Большое путешествие» от HTML Academy",
   "scripts": {
     "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix",
     "build": "webpack --mode production",
     "start": "webpack serve --mode development --open"
   },
@@ -28,7 +27,7 @@
     "style-loader": "3.3.2",
     "webpack": "5.79.0",
     "webpack-cli": "5.0.1",
-    "webpack-dev-server": "4.15.2"
+    "webpack-dev-server": "4.13.3"
   },
   "engines": {
     "node": "20"
