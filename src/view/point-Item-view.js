@@ -1,3 +1,5 @@
+// /src/view/point-item-view.js
+
 import AbstractView from '../framework/view/abstract-view';
 import {
   getFormattedEventDay,
@@ -9,15 +11,18 @@ import {
 import { typeIcons } from '/src/const.js';
 
 function createLayout(pointData, destinationsData, offersData) {
+  // ВАЖНО: Теперь pointData должен быть уже адаптированным (с полями basePrice, dateFrom и т.д.)
   const {
-    base_price: basePrice,
-    date_from: dateFrom,
-    date_to: dateTo,
+    basePrice, // Адаптировано: было base_price
+    dateFrom, // Адаптировано: было date_from
+    dateTo, // Адаптировано: было date_to
     destination,
-    is_favorite: isFavorite,
+    isFavorite, // Адаптировано: было is_favorite
     offers,
     type,
   } = pointData;
+
+  console.log('📊 Point data in PointItemView:', pointData); // Для отладки
 
   // Используем dayjs для форматирования дат
   const eventDay = getFormattedEventDay(dateFrom);
@@ -28,32 +33,27 @@ function createLayout(pointData, destinationsData, offersData) {
   const eventTimeEndAttr = getFormattedAttrDatatimeEvent(dateTo);
   const timeDurationInMinutes = getTimeDuration(dateFrom, dateTo);
 
-  // НАЙДЕМ НАЗВАНИЕ НАПРАВЛЕНИЯ БЕЗОПАСНО
+  // НАЙДЕМ НАЗВАНИЕ НАПРАВЛЕНИЯ
   let nameOfDestination = '';
   if (destination && destinationsData) {
     const destinationItem = destinationsData.find((element) => destination === element.id);
-    nameOfDestination = destinationItem ? destinationItem.name : '';
+    nameOfDestination = destinationItem ? destinationItem.name : 'Unknown Destination';
   }
 
-  // НАЙДЕМ ВЫБРАННЫЕ ПРЕДЛОЖЕНИЯ БЕЗОПАСНО
+  // НАЙДЕМ ВЫБРАННЫЕ ПРЕДЛОЖЕНИЯ
   let selectedOffers = [];
-  if (offersData && offers) {
+  if (offersData && offers && offers.length > 0) {
     offersData.forEach((offerData) => {
-      if (offerData.type === type) {
-        const currentTypeOffersData = offerData.offers;
-
-        selectedOffers = offers.map((id) => {
-          const matchedOffer = currentTypeOffersData.find(
-            (element) => element.id === id
-          );
-          return matchedOffer;
-        }).filter(Boolean); // Убираем undefined
+      if (offerData.type === type && offerData.offers) {
+        selectedOffers = offers
+          .map((offerId) => offerData.offers.find((offer) => offer.id === offerId))
+          .filter(Boolean);
       }
     });
   }
 
-  // ИСПРАВЛЯЕМ ИКОНКУ - ЕСЛИ typeIcons[type] НЕ СУЩЕСТВУЕТ, ИСПОЛЬЗУЕМ ЗАПАСНУЮ
-  const iconSrc = typeIcons[type] || typeIcons.null;
+  // ИСПРАВЛЯЕМ ИКОНКУ
+  const iconSrc = typeIcons[type] || typeIcons.null || 'img/icons/check-in.png';
 
   return `
         <li class="trip-events__item">
@@ -62,7 +62,7 @@ function createLayout(pointData, destinationsData, offersData) {
             <div class="event__type">
               <img class="event__type-icon" width="42" height="42" src="${iconSrc}" alt="Event type icon">
             </div>
-            <h3 class="event__title">${nameOfDestination || 'New Point'}</h3>
+            <h3 class="event__title">${nameOfDestination}</h3>
             <div class="event__schedule">
               <p class="event__time">
                 <time class="event__start-time" datetime="${eventTimeStartAttr}">${eventTimeStart}</time>
@@ -115,11 +115,8 @@ export default class PointItemView extends AbstractView {
     this.#handleRollupClick = handleRollupClick;
     this.#handleFavoriteClick = handleFavoriteClick;
 
-    this.element.querySelector('.event__rollup-btn')
-      ?.addEventListener('click', this.#rollupButtonClickHandler);
-
-    this.element.querySelector('.event__favorite-btn')
-      ?.addEventListener('click', this.#favoriteButtonClickHandler);
+    // Добавляем обработчики после рендера
+    this.#setEventListeners();
   }
 
   get template() {
@@ -128,6 +125,19 @@ export default class PointItemView extends AbstractView {
       this.#destinationsData,
       this.#offersData
     );
+  }
+
+  #setEventListeners() {
+    const rollupBtn = this.element.querySelector('.event__rollup-btn');
+    const favoriteBtn = this.element.querySelector('.event__favorite-btn');
+
+    if (rollupBtn) {
+      rollupBtn.addEventListener('click', this.#rollupButtonClickHandler);
+    }
+
+    if (favoriteBtn) {
+      favoriteBtn.addEventListener('click', this.#favoriteButtonClickHandler);
+    }
   }
 
   #rollupButtonClickHandler = (evt) => {

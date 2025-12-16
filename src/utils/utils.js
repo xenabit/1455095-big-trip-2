@@ -17,7 +17,19 @@ const EDIT_DATE_TIME_FORMAT = 'DD/MM/YY HH:mm';
 const FLATPICKR_DATE_FORMAT = 'd/m/y H:i';
 
 function getFormattedEventDay(date) {
-  return date ? dayjs(date).format(EVENT_DAY_FORMAT) : '';
+  if (!date) {
+    console.warn('⚠️ Empty date passed to getFormattedEventDay');
+    return '';
+  }
+
+  try {
+    const formatted = dayjs(date).format(EVENT_DAY_FORMAT);
+    console.log('📅 Formatted event day:', date, '->', formatted);
+    return formatted;
+  } catch (error) {
+    console.error('❌ Error formatting event day:', error, 'date:', date);
+    return '';
+  }
 }
 
 function getFormattedAttrEventDay(date) {

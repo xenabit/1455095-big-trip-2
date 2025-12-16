@@ -1,4 +1,5 @@
 // /src/presenter/point-presenter.js
+
 import PointEditView from '/src/view/point-edit-view.js';
 import PointItemView from '/src/view/point-item-view.js';
 import { Mode, UserAction } from '/src/const.js';
@@ -34,10 +35,20 @@ export default class PointPresenter {
   }
 
   init(point) {
+    console.log('🎯 PointPresenter init called with point:', point);
+
     this.#point = point;
 
     const prevPointComponent = this.#pointComponent;
     const prevPointEditComponent = this.#pointEditComponent;
+
+    // ДЕБАГ: Проверяем данные
+    console.log('📍 Destination ID:', point.destination);
+    console.log('💰 Base Price:', point.basePrice);
+    console.log('📅 Date From:', point.dateFrom);
+    console.log('📅 Date To:', point.dateTo);
+    console.log('⭐ Is Favorite:', point.isFavorite);
+    console.log('🛠️ Offers:', point.offers);
 
     this.#pointComponent = new PointItemView(
       {
