@@ -1,6 +1,5 @@
 export default class PointAdapter {
   static adaptToClient(serverPoint) {
-    console.log('🔧 PointAdapter.adaptToClient input:', serverPoint);
     return {
       id: serverPoint.id,
       basePrice: serverPoint.base_price,
@@ -14,7 +13,6 @@ export default class PointAdapter {
   }
 
   static adaptToServer(clientPoint) {
-    console.log('🔧 PointAdapter.adaptToServer input:', clientPoint);
 
     const serverPoint = {
       id: clientPoint.id,
@@ -27,12 +25,6 @@ export default class PointAdapter {
       type: clientPoint.type || 'flight',
     };
 
-    console.log('🔧 PointAdapter.adaptToServer output:', serverPoint);
-    console.log('🔍 Проверка полей PointAdapter:');
-    console.log('- type:', serverPoint.type);
-    console.log('- is_favorite:', serverPoint.is_favorite);
-    console.log('- offers:', serverPoint.offers);
-    console.log('- destination:', serverPoint.destination);
 
     return serverPoint;
   }
