@@ -1,4 +1,5 @@
 // /src/presenter/point-presenter.js
+
 import PointEditView from '/src/view/point-edit-view.js';
 import PointItemView from '/src/view/point-item-view.js';
 import { Mode, UserAction } from '/src/const.js';
@@ -34,10 +35,20 @@ export default class PointPresenter {
   }
 
   init(point) {
+    console.log('🎯 PointPresenter init called with point:', point);
+
     this.#point = point;
 
     const prevPointComponent = this.#pointComponent;
     const prevPointEditComponent = this.#pointEditComponent;
+
+    // ДЕБАГ: Проверяем данные
+    console.log('📍 Destination ID:', point.destination);
+    console.log('💰 Base Price:', point.basePrice);
+    console.log('📅 Date From:', point.dateFrom);
+    console.log('📅 Date To:', point.dateTo);
+    console.log('⭐ Is Favorite:', point.isFavorite);
+    console.log('🛠️ Offers:', point.offers);
 
     this.#pointComponent = new PointItemView(
       {
@@ -110,14 +121,33 @@ export default class PointPresenter {
     }
   };
 
-  // ВАЖНО: Этот метод должен быть простым - только отправляет обновление
-  #handleFormSubmit = (updatedPoint) => {
+
+  // /src/presenter/point-presenter.js
+
+  #handleFormSubmit = async (updatedPoint) => {
     console.log('📝 Point form submitted:', updatedPoint);
 
-    // Для существующих точек просто отправляем обновление
-    // Валидация уже выполнена в PointEditView
-    this.#handlePointChange(UserAction.UPDATE_POINT, updatedPoint);
-    this.#closeForm();
+    // Устанавливаем состояние "сохранение"
+    this.#pointEditComponent?.setSaving();
+
+    try {
+    // Отправляем обновление (теперь это асинхронная операция)
+      await this.#handlePointChange(UserAction.UPDATE_POINT, updatedPoint);
+
+      console.log('✅ Form submitted successfully');
+      // Форма закроется через handleModelEvent когда модель уведомит об успешном обновлении
+
+    } catch (error) {
+      console.error('❌ Update failed:', error);
+
+      // Возвращаем кнопкам обычное состояние
+      this.#pointEditComponent?.setAborting();
+
+      // Можно показать сообщение пользователю
+      this.#pointEditComponent?.shake(() => {
+      // Дополнительные действия после анимации
+      });
+    }
   };
 
   #handleDeleteClick = (point) => {

@@ -1,10 +1,27 @@
 // /src/model/destinations-model.js
 
-import { mockDestinations } from '../mock/mock-destinations.js';
 import Observable from '../framework/observable.js';
+import DestinationsAdapter from '../adapters/destinations-adapter.js';
 
 export default class DestinationsModel extends Observable {
-  #destinations = mockDestinations;
+  #destinations = [];
+  #apiService = null;
+
+  constructor(apiService) {
+    super();
+    this.#apiService = apiService;
+  }
+
+  async init() {
+    try {
+      const destinations = await this.#apiService.getDestinations();
+      this.#destinations = DestinationsAdapter.adaptToClient(destinations);
+    } catch (err) {
+      console.error('Failed to load destinations:', err);
+      this.#destinations = [];
+      throw new Error('Failed to load destinations');
+    }
+  }
 
   getDestinations() {
     return this.#destinations;

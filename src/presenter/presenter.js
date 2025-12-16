@@ -1,6 +1,7 @@
 // /src/presenter/presenter.js
-import PointsListView from '/src/view/points-list-view';
-import SortView from '/src/view/sort-view';
+import PointsListView from '/src/view/points-list-view.js';
+import LoadingView from '/src/view/loading-view.js';
+import SortView from '/src/view/sort-view.js';
 import PointPresenter from './point-presenter.js';
 import NewPointPresenter from './new-point-presenter.js';
 import { render, remove } from '../framework/render.js';
@@ -26,6 +27,8 @@ export default class Presenter {
   #newPointPresenter = null;
   #newEventButtonElement = null;
 
+  #loadingComponent = null;
+
   constructor({
     pointsModel,
     destinationsModel,
@@ -41,24 +44,71 @@ export default class Presenter {
     this.#filterModel.addObserver(this.#handleModelEvent);
   }
 
-  init() {
+  async init() {
+    console.log('🎬 Presenter init started');
     // Инициализируем кнопку New Event из существующей разметки
+    this.#initExistingNewEventButton();
+    this.#showLoading();
+
+    // Инициализируем кнопку New Event
     this.#initExistingNewEventButton();
 
     this.#sortComponent = new SortView({
       onSortTypeChange: this.#handleSortTypeChange
     });
-
     const eventsSection = document.querySelector('.trip-events');
     if (!eventsSection) {
       console.error('Could not find .trip-events container');
       return;
     }
 
-    render(this.#sortComponent, eventsSection);
-    render(this.#pointsListComponent, eventsSection);
+    // Ждем загрузки данных
+    try {
+      // В реальном проекте здесь можно добавить Promise.all для ожидания загрузки
+      // или использовать события моделей
 
-    this.#renderAllPoints();
+      // Скрываем заглушку и показываем контент
+      this.#hideLoading();
+      render(this.#sortComponent, eventsSection);
+      render(this.#pointsListComponent, eventsSection);
+      this.#renderAllPoints();
+
+    } catch (error) {
+      console.error('Failed to load data:', error);
+      this.#hideLoading();
+      this.#renderNoPoints();
+    }
+  }
+
+
+  #showLoading() {
+    if (this.#loadingComponent) {
+      remove(this.#loadingComponent);
+    }
+
+    this.#loadingComponent = new LoadingView();
+    const eventsSection = document.querySelector('.trip-events');
+    render(this.#loadingComponent, eventsSection);
+  }
+
+  // /src/presenter/presenter.js
+  // /src/presenter/presenter.js
+
+  #hideLoading() {
+    console.log('🔄 Hiding loading...');
+
+    // Просто удаляем элемент из DOM
+    const loadingElement = document.querySelector('.trip-events__msg');
+    if (loadingElement && loadingElement.textContent === 'Loading...') {
+      console.log('✅ Found loading element, removing...');
+      loadingElement.remove();
+    }
+
+    // И удаляем компонент
+    if (this.#loadingComponent) {
+      remove(this.#loadingComponent);
+      this.#loadingComponent = null;
+    }
   }
 
   #initExistingNewEventButton() {
@@ -140,15 +190,20 @@ export default class Presenter {
     }
   }
 
-  #handleViewAction = (actionType, payload) => {
+  #handleViewAction = async (actionType, payload) => {
     console.log(`🎯 View action: ${actionType}`, payload);
-    console.log(`📊 Payload type: ${typeof payload}`, payload?.constructor?.name);
-    console.log('🔍 Payload keys:', payload ? Object.keys(payload) : 'null');
 
     switch (actionType) {
       case UserAction.UPDATE_POINT:
-        console.log('🔄 Updating point:', payload);
-        this.#pointsModel.updatePoint(UpdateType.MINOR, payload);
+        console.log('🔄 Presenter: Updating point...');
+        try {
+          await this.#pointsModel.updatePoint(UpdateType.MINOR, payload);
+          console.log('✅ Presenter: Point updated successfully');
+        } catch (error) {
+          console.error('❌ Presenter: Update failed:', error);
+          // Нужно уведомить PointPresenter об ошибке
+          this.#handleUpdateError(payload.id, error);
+        }
         break;
       case UserAction.ADD_POINT:
         console.log('➕ Adding point:', payload);
@@ -170,23 +225,32 @@ export default class Presenter {
     }
   };
 
+  #handleUpdateError = (pointId, error) => {
+  // Находим презентер точки и уведомляем об ошибке
+    const pointPresenter = this.#pointPresenters.get(pointId);
+    if (pointPresenter) {
+    // Нужно добавить метод в PointPresenter для обработки ошибок
+      pointPresenter.setAborting();
+    }
+  };
+
+  // /src/presenter/presenter.js (исправляем #handleModelEvent)
+
+  // /src/presenter/presenter.js
+
   #handleModelEvent = (updateType, payload) => {
-    console.log(`Model event: ${updateType}`, payload);
+    console.log(`🎯 Model event: ${updateType}`, payload);
 
     switch (updateType) {
       case UpdateType.PATCH:
         this.#updatePoint(payload);
         break;
-      case UpdateType.MINOR:
-        // После успешного добавления новой точки закрываем форму
-        if (this.#newPointPresenter) {
-          this.#newPointPresenter.destroy();
-          // Не вызываем #handleNewPointDestroy здесь - он вызовется из destroy()
-        }
 
+      case UpdateType.MINOR:
         this.#clearPoints();
         this.#renderAllPoints();
         break;
+
       case UpdateType.MAJOR:
         this.#currentSortType = SortType.DAY;
         if (this.#sortComponent) {
@@ -195,8 +259,22 @@ export default class Presenter {
         this.#clearPoints();
         this.#renderAllPoints();
         break;
+
       case UpdateType.INIT:
-        this.#renderAllPoints();
+        console.log('🚀 INIT event received!');
+        console.log('📊 Points available:', this.#pointsModel.getPoints().length);
+
+        // ВАЖНО: Сначала скрываем loading
+        this.#hideLoading();
+
+        // Проверяем, есть ли точки
+        if (this.#pointsModel.getPoints().length === 0) {
+          console.log('📭 No points, showing empty state');
+          this.#renderNoPoints();
+        } else {
+          console.log('🎨 Rendering all points');
+          this.#renderAllPoints();
+        }
         break;
     }
   };
@@ -240,17 +318,27 @@ export default class Presenter {
     }
   }
 
-  #renderNoPoints() {
+  // /src/presenter/presenter.js (обновляем #renderNoPoints)
+
+  #renderNoPoints(error = null) {
     const filterType = this.#filterModel.filter;
-    const messages = {
-      [FilterType.EVERYTHING]: 'Click New Event to create your first point',
-      [FilterType.FUTURE]: 'There are no future events now',
-      [FilterType.PRESENT]: 'There are no present events now',
-      [FilterType.PAST]: 'There are no past events now'
-    };
+
+    let message = '';
+
+    if (error) {
+      message = 'Failed to load latest route information';
+    } else {
+      const messages = {
+        [FilterType.EVERYTHING]: 'Click New Event to create your first point',
+        [FilterType.FUTURE]: 'There are no future events now',
+        [FilterType.PRESENT]: 'There are no present events now',
+        [FilterType.PAST]: 'There are no past events now'
+      };
+      message = messages[filterType] || messages[FilterType.EVERYTHING];
+    }
 
     this.#noPointComponent = new NoPointView({
-      message: messages[filterType] || messages[FilterType.EVERYTHING]
+      message
     });
 
     const eventsSection = document.querySelector('.trip-events');
