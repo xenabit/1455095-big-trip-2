@@ -1,5 +1,5 @@
-import PointEditView from '../view/point-edit-view.js';
-import PointItemView from '../view/point-item-view.js';
+import PointEditView from '/src/view/point-edit-view.js';
+import PointItemView from '/src/view/point-item-view.js';
 import { Mode, UserAction } from '/src/const.js';
 import { render, replace, remove } from '/src/framework/render.js';
 import { isEscEvent } from '../utils/utils.js';
