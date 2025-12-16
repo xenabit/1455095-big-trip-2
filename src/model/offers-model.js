@@ -1,5 +1,3 @@
-// /src/model/offers-model.js
-
 import Observable from '../framework/observable.js';
 import OffersAdapter from '../adapters/offers-adapter.js';
 

@@ -1,5 +1,3 @@
-// /src/model/destinations-model.js
-
 import Observable from '../framework/observable.js';
 import DestinationsAdapter from '../adapters/destinations-adapter.js';
 

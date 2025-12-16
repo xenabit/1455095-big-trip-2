@@ -1,5 +1,3 @@
-// /src/adapters/destinations-adapter.js
-
 export default class DestinationsAdapter {
   static adaptToClient(destinations) {
     return destinations.map((destination) => ({

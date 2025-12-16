@@ -1,9 +1,7 @@
-// /src/utils/filter.js
 import dayjs from 'dayjs';
 import { FilterType } from '../const.js';
 import { DataAdapter } from './data-adapter.js';
 
-// Вспомогательные функции
 const normalizePoints = (points) => {
   if (!points) {
     return [];

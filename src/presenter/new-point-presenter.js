@@ -77,7 +77,7 @@ export default class NewPointPresenter {
     const firstDestination = destinations.length > 0 ? destinations[0].id : null;
     const defaultType = 'flight';
     const now = new Date();
-    const twoHoursLater = new Date(now.getTime() + 7200000); // 2 часа позже
+    const twoHoursLater = new Date(now.getTime() + 7200000);
 
     return {
       id: null,

@@ -4,7 +4,6 @@ export const DataAdapter = {
       return null;
     }
 
-    // Разворачиваем вложенный тернарный оператор
     let isFavorite = false;
     if (data.isFavorite !== undefined) {
       isFavorite = Boolean(data.isFavorite);
@@ -31,11 +30,9 @@ export const DataAdapter = {
     }
 
 
-    // Сначала нормализуем к клиентскому формату
     const clientData = this.toClient(data);
 
 
-    // Затем конвертируем в серверный формат
     const result = {
       id: clientData.id,
       base_price: Number(clientData.basePrice) || 0, // eslint-disable-line camelcase

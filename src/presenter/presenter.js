@@ -1,4 +1,3 @@
-// /src/presenter/presenter.js
 import PointsListView from '/src/view/points-list-view.js';
 import LoadingView from '/src/view/loading-view.js';
 import SortView from '/src/view/sort-view.js';

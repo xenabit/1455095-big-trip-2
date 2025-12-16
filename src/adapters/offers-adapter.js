@@ -1,5 +1,3 @@
-// /src/adapters/offers-adapter.js
-
 export default class OffersAdapter {
   static adaptToClient(offers) {
     return offers.map((offerGroup) => ({

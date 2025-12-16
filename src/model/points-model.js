@@ -12,7 +12,6 @@ export default class PointsModel extends Observable {
     this.#apiService = apiService;
   }
 
-  // В методе init():
   async init() {
     try {
       const serverPoints = await this.#apiService.getPoints();

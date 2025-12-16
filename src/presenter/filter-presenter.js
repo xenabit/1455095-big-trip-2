@@ -1,5 +1,3 @@
-// /src/presenter/filter-presenter.js
-
 import FilterView from '../view/filter-view.js';
 import { FilterType, UpdateType } from '../const.js';
 import { render, replace, remove } from '../framework/render.js';
@@ -17,7 +15,6 @@ export default class FilterPresenter {
     this.#filterModel = filterModel;
     this.#pointsModel = pointsModel;
 
-    // Подписываемся на изменения в моделях
     this.#filterModel.addObserver(this.#handleModelEvent);
     this.#pointsModel.addObserver(this.#handleModelEvent);
   }
@@ -50,7 +47,6 @@ export default class FilterPresenter {
       return;
     }
 
-    // При смене фильтра сбрасываем сортировку на DAY
     this.#filterModel.setFilter(UpdateType.MAJOR, filterType);
   };
 
@@ -59,7 +55,6 @@ export default class FilterPresenter {
     const points = this.#pointsModel.getPoints();
     const now = new Date();
 
-    // ПРИВОДИМ ВСЕ ТОЧКИ К ЕДИНОМУ ФОРМАТУ
     const normalizedPoints = points.map((point) => DataAdapter.forSorting(point));
 
     return [
